@@ -343,7 +343,7 @@
         <p class="eyebrow">Correlation</p>
         <div class="card">
           <table class="cormatrix" id="cormatrix"></table>
-          <p class="caption">Brighter means the two move together. Diversification only works where this is dark.</p>
+          <p class="caption">Brighter means the two move together. Diversification only works where this is dark. Pairs are compared only on days both markets were open, so a Dutch public holiday cannot masquerade as a day Microsoft did not move.</p>
         </div>
       </div>
       <div>
@@ -382,7 +382,8 @@ let CFG={},PRICES={series:{}},FXDATA={},NEWSDATA={},CONSDATA={},SRV={},STATUS={}
 let CATALOG={},PXINDEX={};   /* every instrument with a feed, and where its file lives */
 let ISO=[],NDAYS=0,FIRST="",LAST="",IDX=new Map();
 let FX={EUR:1},CURRENCIES=["EUR"];
-let INSTR={},NATPX={},EURPX={},RET={},DAY={};
+let INSTR={},NATPX={},EURPX={},RET={},DAY={},REAL={};
+let BENCHT="";                 /* benchmark ticker, needed for the masked regressions */
 let mkt=[],aiX=[];
 let CONSENSUS={},AI_REV={},CYCLE=[],SOURCES=[],STORIES=[];
 
@@ -438,6 +439,42 @@ function alignedReturns(series,axis){
   return out;
 }
 
+/* Amsterdam and New York keep different holidays. Carrying a price forward
+   across a day one market was shut invents a 0% return, which drags every
+   correlation and beta towards zero. So remember which returns are real and
+   compare two series only on the days both of them actually traded. */
+function realMask(series,axis){
+  const m=[];
+  let prev=Object.prototype.hasOwnProperty.call(series,axis[0]);
+  for(let i=1;i<axis.length;i++){
+    const cur=Object.prototype.hasOwnProperty.call(series,axis[i]);
+    m.push(prev&&cur);
+    prev=cur;
+  }
+  return m;
+}
+function bothTraded(a,b,ma,mb){
+  const x=[],y=[];
+  for(let i=0;i<a.length;i++)if(ma[i]&&mb[i]){x.push(a[i]);y.push(b[i])}
+  return [x,y];
+}
+const maskOf=t=>REAL[t]||new Array(Math.max(0,NDAYS-1)).fill(true);
+
+/* correlation between two holdings, on their shared trading days only */
+function corrOf(t1,t2){
+  const [x,y]=bothTraded(series(t1),series(t2),maskOf(t1),maskOf(t2));
+  return x.length>=30?corr(x,y):0;
+}
+/* beta and residual against the benchmark, same treatment */
+function betaAgainstBenchmark(t){
+  const [x,m]=bothTraded(series(t),mkt,maskOf(t),maskOf(BENCHT));
+  if(x.length<30)return null;
+  const vm=cov(m,m);
+  const beta=vm?cov(x,m)/vm:0;
+  const resid=x.map((v,i)=>v-beta*m[i]);
+  return {beta,resid,sigma:sd(resid),days:x.length};
+}
+
 /* .us symbols quote in dollars, everything else here in euros. Only used for
    the AI basket, where getting this roughly right matters more than exactly. */
 const basketCcy=sym=>/\.us$/i.test(sym)?"USD":"EUR";
@@ -489,16 +526,20 @@ function buildAll(){
   /* date axis comes from the benchmark, so every series is compared like for like */
   const bench=CFG.benchmark||{ticker:"WORLD",currency:"EUR"};
   const bt=String(bench.ticker||"WORLD").toUpperCase();
+  BENCHT=bt;
   const b=eurSeries(bt,(CATALOG[bt]||{}).ccy||bench.currency||"EUR");
   ISO=b.dates.slice(-(CFG.history_days||780));
   NDAYS=ISO.length;FIRST=ISO[0]||"";LAST=ISO[NDAYS-1]||"";
   IDX=new Map(ISO.map((s,i)=>[s,i]));
+  REAL={};
   mkt=NDAYS?alignedReturns(b.series,ISO):[];
+  if(NDAYS)REAL[bt]=realMask(b.series,ISO);
 
   Object.keys(PRICES.series).forEach(t=>{
     if(!INSTR[t])INSTR[t]={name:t,ccy:"EUR",ai:0.1,opt:true,idio:0,tracked:false};
     const e=eurSeries(t,INSTR[t].ccy);
     RET[t]=NDAYS?alignedReturns(e.series,ISO):[];
+    if(NDAYS)REAL[t]=realMask(e.series,ISO);
     const nat=(PRICES.series||{})[t]||{};
     const nd=Object.keys(nat).sort();
     NATPX[t]=nd.length?nat[nd[nd.length-1]]:0;
@@ -567,8 +608,12 @@ const aiRevOf=t=>AI_REV[t]??0.1;
    ============================================================ */
 function cumret(a,n){let p=1;for(let i=Math.max(0,a.length-n);i<a.length;i++)p*=(1+a[i]);return p-1}
 function maxDD(a){let p=1,pk=1,d=0;for(const x of a){p*=(1+x);if(p>pk)pk=p;d=Math.min(d,p/pk-1)}return d}
-function residuals(t){const s=series(t),b=cov(s,mkt)/cov(mkt,mkt);return{beta:b,r:s.map((x,i)=>x-b*mkt[i])}}
-function residToday(t){const{beta,r}=residuals(t),sig=sd(r),last=r[r.length-1];return{beta,sigma:sig,resid:last,z:sig?last/sig:0}}
+function residToday(t){
+  const f=betaAgainstBenchmark(t);
+  if(!f)return{beta:0,sigma:0,resid:0,z:0};
+  const last=f.resid[f.resid.length-1];
+  return{beta:f.beta,sigma:f.sigma,resid:last,z:f.sigma?last/f.sigma:0};
+}
 const SIGMA_TRIGGER=()=>CFG.alerts?.residual_sigma??3, ABS_FLOOR=()=>CFG.alerts?.residual_floor??0.04;
 
 /* Money-weighted return. Only possible because trades carry dates. */
@@ -798,7 +843,7 @@ const ALERT_RULES=[
   function pairCorr(ctx){
     let worst=null;
     for(let i=0;i<ctx.rows.length;i++)for(let j=i+1;j<ctx.rows.length;j++){
-      const c=corr(series(ctx.rows[i].t),series(ctx.rows[j].t));
+      const c=corrOf(ctx.rows[i].t,ctx.rows[j].t);
       if(!worst||c>worst.c)worst={c,a:ctx.rows[i].t,b:ctx.rows[j].t};
     }
     if(!worst||worst.c<(ctx.cfg.correlation_warn??0.6))return null;
@@ -1078,11 +1123,11 @@ function renderRisk(){
 
   renderAI(rows,total);
 
-  const ts=rows.map(r=>r.t),ss=ts.map(series);
+  const ts=rows.map(r=>r.t);
   document.getElementById("cormatrix").innerHTML=
     `<tr><th></th>${ts.map(t=>`<th>${t}</th>`).join("")}</tr>`+
     ts.map((t,i)=>`<tr><td>${t}</td>${ts.map((_,j)=>{
-      const c=i===j?1:corr(ss[i],ss[j]),a=Math.max(0,Math.min(1,c))*0.9;
+      const c=i===j?1:corrOf(ts[i],ts[j]),a=Math.max(0,Math.min(1,c))*0.9;
       return `<td style="background:rgba(255,255,255,${a.toFixed(3)});color:${a>0.5?"#000":"#F2F2F2"}">${c.toFixed(2)}</td>`;
     }).join("")}</tr>`).join("");
   const exc=rows.filter(r=>!r.opt);
