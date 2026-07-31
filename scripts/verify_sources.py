@@ -4,7 +4,7 @@ Feed URLs move and free tiers change. This checks every configured source and
 prints a plain-English report saying which ones answered and which need a new
 URL. It changes nothing and writes nothing except the report.
 """
-import sys, json
+import sys, json, time
 from common import fetch, settings, log, secret
 
 OK, BAD = "  WORKS   ", "  BROKEN  "
@@ -131,6 +131,7 @@ def main():
                 print("  SKIPPED " + f"{inst['ticker']:<8} — daily Alpha Vantage allowance used up")
                 continue
             def f(i=inst):
+                time.sleep(15)          # spread them out, as Alpha Vantage asks
                 p = json.loads(fetch(fetch_consensus.URL.format(sym=i["alphavantage"], key=av))
                                .decode("utf-8", "replace"))
                 m = p.get("Note") or p.get("Information") or p.get("Error Message")
