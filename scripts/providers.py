@@ -60,9 +60,14 @@ def to_yahoo(stooq_symbol):
 
 
 class Yahoo:
-    """No account, no key, covers European listings. Tried first."""
+    """No account, no key, covers European listings. Tried first.
+
+    Also reports which currency the listing actually trades in, which matters:
+    several Amsterdam-listed ETFs (CSPX, VWCE) are USD share classes, and
+    assuming euros because the exchange is Dutch gets the valuation wrong."""
     name = "yahoo"
     key_setting = "yahoo"
+    last_meta = {}
 
     @staticmethod
     def history(symbol, _key=None):
@@ -75,6 +80,9 @@ class Yahoo:
         result = (chart.get("result") or [None])[0]
         if not result:
             raise ValueError(f"yahoo returned no result for {symbol}")
+        meta = result.get("meta") or {}
+        Yahoo.last_meta = {"currency": (meta.get("currency") or "").upper() or None,
+                           "exchange": meta.get("fullExchangeName") or meta.get("exchangeName")}
         stamps = result.get("timestamp") or []
         quote = ((result.get("indicators") or {}).get("quote") or [{}])[0]
         closes = quote.get("close") or []
@@ -170,12 +178,14 @@ def resolve(ticker, cfg, cache):
         sym = base + suf
         for P in (Yahoo, Stooq):
             try:
+                Yahoo.last_meta = {}
                 probe = to_yahoo(sym) if P is Yahoo else sym
                 rows = P.history(probe)
             except Exception:                       # noqa: BLE001
                 continue
+            detected = (Yahoo.last_meta or {}).get("currency") if P is Yahoo else None
             found = {"stooq": sym,
-                     "currency": ar.get("currency_by_suffix", {}).get(suf, "EUR"),
+                     "currency": detected or ar.get("currency_by_suffix", {}).get(suf, "EUR"),
                      "points": len(rows), "last": rows[-1]["date"]}
             cache[key] = found
             log(f"   resolved {ticker} -> {sym} via {P.name} ({found['currency']})")
@@ -203,15 +213,21 @@ def parse_universe(cfg):
 
 
 def history(inst, av_key=None, days=780, order=None):
-    """Try each provider in turn. Returns (rows, provider_name)."""
+    """Try each provider in turn. Returns (rows, provider_name, meta).
+
+    meta carries whatever the feed knows about itself — currency and exchange —
+    so the settings file does not have to be right about them."""
     errors = []
     for P in (order or ORDER):
         symbol = symbol_for(inst, P)
         if not symbol:
             continue
         try:
+            Yahoo.last_meta = {}
             rows = P.history(symbol, av_key)
-            return rows[-days:], P.name
+            meta = dict(Yahoo.last_meta) if P is Yahoo else {}
+            meta["symbol"] = symbol
+            return rows[-days:], P.name, meta
         except Exception as e:                      # noqa: BLE001
             errors.append(f"{P.name}({symbol}): {e}")
     raise RuntimeError(f"all providers failed for {inst.get('ticker','?')} — " + " | ".join(errors))
