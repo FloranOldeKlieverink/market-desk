@@ -1,0 +1,66 @@
+name: Update dashboard
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"      # news and filings, every half hour
+    - cron: "30 21 * * 1-5"     # prices, consensus and the email, weekdays after the US close
+  workflow_dispatch:            # and whenever you press the button
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Fetch news
+        run: python scripts/fetch_news.py
+        continue-on-error: true
+
+      - name: Fetch filings
+        run: python scripts/fetch_filings.py
+        continue-on-error: true
+
+      # Prices are end-of-day figures. Asking 148 instruments every half hour
+      # would be thousands of pointless requests for numbers that never moved.
+      - name: Fetch exchange rates and prices
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 21 * * 1-5'
+        run: |
+          python scripts/fetch_fx.py
+          python scripts/fetch_prices.py
+        continue-on-error: true
+        env:
+          ALPHAVANTAGE_KEY: ${{ secrets.ALPHAVANTAGE_KEY }}
+
+      - name: Take today's consensus snapshot
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 21 * * 1-5'
+        run: python scripts/fetch_consensus.py
+        continue-on-error: true
+        env:
+          ALPHAVANTAGE_KEY: ${{ secrets.ALPHAVANTAGE_KEY }}
+
+      - name: Build alerts, and email them once a day
+        run: python scripts/build_alerts.py
+        continue-on-error: true
+        env:
+          SEND_EMAIL: ${{ (github.event_name == 'workflow_dispatch' || github.event.schedule == '30 21 * * 1-5') && '1' || '0' }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+
+      - name: Save whatever changed
+        run: |
+          git config user.name  "dashboard"
+          git config user.email "dashboard@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet || git commit -m "update $(date -u +'%Y-%m-%d %H:%M')"
+          git push
