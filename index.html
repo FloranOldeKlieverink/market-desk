@@ -590,6 +590,7 @@ function xirr(flows){
    GitHub, which is what allows the repo to be public. Clearing site data or
    using a different browser means starting the log again — the export button
    below the log is the backup. */
+let droppedTxns=0;              /* incomplete rows found in storage, reported in the status bar */
 const LSKEY="floran.transactions.v1";
 const OPTKEY="floran.optimiser.v1";
 
@@ -598,7 +599,13 @@ function loadTxns(){
     const raw=localStorage.getItem(LSKEY);
     if(!raw)return[];
     const parsed=JSON.parse(raw);
-    return Array.isArray(parsed)?parsed.filter(x=>x&&x.t&&x.date&&x.qty>0&&x.price>0):[];
+    if(!Array.isArray(parsed))return[];
+    const good=parsed.filter(x=>x&&x.t&&x.date&&x.qty>0&&x.price>0);
+    if(good.length!==parsed.length){
+      console.warn(`${parsed.length-good.length} incomplete transaction(s) discarded on load`);
+      droppedTxns=parsed.length-good.length;
+    }
+    return good;
   }catch(e){return[]}
 }
 function saveTxns(){
@@ -863,7 +870,12 @@ function renderLedger(){
   el.innerHTML=`<table class="ledger">
     <thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>FX at trade</th><th>Value</th><th></th></tr></thead>
     <tbody>${sorted.map(x=>{
-      const v=x.qty*x.price*x.fx;
+      const ok=x.t&&x.date&&x.qty>0&&x.price>0;
+      const v=ok?x.qty*x.price*x.fx:0;
+      if(!ok)return `<tr><td colspan="7" style="color:var(--flag)">
+        Incomplete entry (${[!x.t&&"no ticker",!x.date&&"no date",!(x.qty>0)&&"no quantity",!(x.price>0)&&"no price"].filter(Boolean).join(", ")})
+        — delete it and record it again</td>
+        <td><button class="del" data-x="${x.id}" aria-label="Delete trade">×</button></td></tr>`;
       return `<tr>
         <td>${prettyDate(x.date)}</td>
         <td><span class="tkr">${x.t}</span></td>
@@ -1185,6 +1197,7 @@ function renderStatus(){
   const catN=Object.keys(CATALOG).length;
   if(catN)bits.push(`${catN} instruments available`);
   if(bad.length)bits.push(`<b>${bad.length} source${bad.length>1?"s":""} failing: ${bad.join(", ")}</b>`);
+  if(droppedTxns)bits.push(`<b>${droppedTxns} incomplete trade(s) were discarded — please re-enter them</b>`);
   const stale=(PRICES.failed||[]);
   if(stale.length)bits.push(`<b>stale prices: ${stale.join(", ")}</b>`);
   el.innerHTML=bits.join(" · ");
@@ -1246,7 +1259,16 @@ function addTrade(){
   const qty=parseFloat($("f-qty").value),price=parseFloat($("f-price").value);
   const ccy=$("f-ccy").value;
   let date=$("f-date").value||LAST;
-  if(!t||!(qty>0)||!(price>0)){alert("Enter a ticker, a quantity above zero, and the price you paid.");return}
+  const missing=[];
+  if(!t)missing.push("a ticker");
+  if(!(qty>0))missing.push("a quantity above zero");
+  if(!(price>0))missing.push("the price you paid");
+  if(!date)missing.push("the trade date");
+  if(!FX[ccy])missing.push("a currency");
+  if(missing.length){
+    alert("Still needed: "+missing.join(", ")+".\n\nTip: if you typed a comma as the decimal point, the box will look filled but read as empty. Use a full stop.");
+    return;
+  }
   if(!NDAYS){alert("No price history has been fetched yet. Run the refresh workflow first.");return}
   if(!CATALOG[t]&&!confirm(`${t} has no price feed yet.\n\nAdd it to "watchlist" in settings.json and the fetcher will find the exchange itself, usually within a day. Record the trade anyway?`))return;
   if(date<FIRST)date=FIRST; if(date>LAST)date=LAST;
