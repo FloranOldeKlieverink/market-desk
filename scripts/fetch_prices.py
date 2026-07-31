@@ -20,7 +20,7 @@ def targets(cfg, cache):
             r = providers.resolve(t, cfg, cache)
             if r:
                 merged["stooq"] = r["stooq"]
-                merged.setdefault("currency", r["currency"])
+                merged["currency"] = merged.get("currency") or r["currency"]
         out[t] = merged
     for t in cfg.get("watchlist", []):
         t = t.upper()
@@ -55,17 +55,24 @@ def main():
     for t, inst in sorted(tgts.items()):
         fname = "px/" + t.replace("/", "_").replace(":", "_") + ".json"
         try:
-            rows, provider = providers.history(inst, av, days)
+            rows, provider, meta = providers.history(inst, av, days)
+            declared = inst.get("currency", "EUR")
+            actual = meta.get("currency") or declared
+            if actual != declared:
+                log(f"   {t}: settings say {declared}, the exchange says {actual} — using {actual}")
             series = {r["date"]: r["close"] for r in rows}
             prev = read_json(fname, {}) or {}
             if prev.get("series") == series:
                 unchanged += 1
             else:
                 write_json(fname, {"ticker": t, "name": inst.get("name", t),
-                                   "ccy": inst.get("currency", "EUR"),
+                                   "ccy": actual, "declared_ccy": declared,
+                                   "exchange": meta.get("exchange"),
+                                   "symbol": meta.get("symbol"),
                                    "provider": provider, "series": series})
                 fresh += 1
-            index[t] = {"name": inst.get("name", t), "ccy": inst.get("currency", "EUR"),
+            index[t] = {"name": inst.get("name", t), "ccy": actual,
+                        "exchange": meta.get("exchange"), "symbol": meta.get("symbol"),
                         "file": fname, "last": rows[-1]["date"], "points": len(rows),
                         "ai": inst.get("ai_revenue_share"),
                         "opt": inst.get("include_in_optimiser", True)}
