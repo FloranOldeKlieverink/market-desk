@@ -4,7 +4,7 @@ The free plan gives rating counts and a mean target but no high/low spread and
 no revision history. So we save one snapshot a day into the repo: after a few
 weeks the revision history is ours, built from our own record rather than bought.
 """
-import json, sys, datetime as dt
+import json, sys, time, datetime as dt
 from common import fetch, settings, read_json, write_json, log, guard, stamp, secret
 
 URL = "https://www.alphavantage.co/query?function=OVERVIEW&symbol={sym}&apikey={key}"
@@ -57,6 +57,7 @@ def main():
     hist.setdefault(today, {})
     out, calls = {}, 0
 
+    first = True
     for i in cfg["instruments"]:
         sym = i.get("alphavantage")
         t = i["ticker"]
@@ -67,6 +68,9 @@ def main():
             out[t] = {"cov": "unknown", "why": "No Alpha Vantage key configured yet."}
             continue
         try:
+            if not first:
+                time.sleep(15)          # free tier allows about five a minute
+            first = False
             payload = json.loads(fetch(URL.format(sym=sym, key=key)).decode("utf-8", "replace"))
             if "Note" in payload or "Information" in payload:
                 raise ValueError("rate limit reached")
