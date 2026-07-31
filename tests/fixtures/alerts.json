@@ -1,0 +1,1 @@
+{"updated": "2026-07-31T14:16:13+00:00", "alerts": [{"id": "resid:AAPL", "kind": "Thesis check", "mail": true, "tone": "neg", "when": "2026-07-31", "title": "AAPL: -9.2% beyond what the market explains", "body": "Stripping out the 1.08 beta leaves a residual of -9.2%, or 8.1 sigma."}], "emailed": false, "residuals": []}

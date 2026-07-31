@@ -1,0 +1,1277 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floran — investor dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --void:#000000; --panel:#0D0D0D; --panel2:#151515;
+    --rule:#262626; --rule-soft:#1A1A1A;
+    --text:#F2F2F2; --dim:#8C8C8C; --dimmer:#5E5E5E;
+    --gain:#3FCF7F; --loss:#FF5E51; --flag:#D8A93A;
+    --display:'Archivo',system-ui,sans-serif;
+    --body:'Source Serif 4',Georgia,serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--void);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px 80px}
+
+  .demo{background:var(--panel2);color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;text-align:center;padding:8px 16px;border-bottom:1px solid var(--rule)}
+  .demo b{color:var(--flag);font-weight:500}
+  .demo.bad{border-bottom-color:var(--flag)}
+
+  .masthead{border-bottom:2px solid var(--text);padding:36px 0 0}
+  .brandrow{display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap}
+  .wordmark{font-family:var(--display);font-weight:800;font-size:clamp(28px,4.6vw,40px);letter-spacing:-.035em;line-height:.9;margin:0}
+  .stamp{font-family:var(--mono);font-size:11px;color:var(--dimmer);letter-spacing:.08em;text-transform:uppercase}
+
+  .valueblock{display:flex;align-items:baseline;gap:22px;flex-wrap:wrap;margin:28px 0 20px}
+  .bignum{font-family:var(--display);font-weight:800;font-size:clamp(42px,8.5vw,74px);letter-spacing:-.045em;line-height:.86;font-variant-numeric:tabular-nums}
+  .daychip{font-family:var(--mono);font-size:14px;font-weight:500;padding:5px 10px;border-radius:3px;white-space:nowrap}
+  .daychip.up{background:rgba(63,207,127,.13);color:var(--gain)}
+  .daychip.down{background:rgba(255,94,81,.13);color:var(--loss)}
+  .vlabel{font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--dim)}
+  .up{color:var(--gain)} .down{color:var(--loss)}
+  .arw{font-size:.8em;letter-spacing:0}
+
+  .strip{display:flex;overflow-x:auto;border-top:1px solid var(--rule);margin-top:6px;scrollbar-width:thin}
+  .strip::-webkit-scrollbar{height:4px}
+  .strip::-webkit-scrollbar-thumb{background:var(--rule)}
+  .stripcell{flex:0 0 auto;padding:10px 20px 12px;border-right:1px solid var(--rule-soft);min-width:112px}
+  .stripcell:last-child{border-right:none}
+  .stripcell .t{font-family:var(--display);font-weight:700;font-size:13px}
+  .stripcell .d{font-family:var(--mono);font-size:12px;margin-top:2px;font-variant-numeric:tabular-nums}
+
+  nav{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin-bottom:34px;flex-wrap:wrap}
+  nav button{appearance:none;background:none;border:none;cursor:pointer;font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);padding:16px 20px;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:color .15s;display:flex;align-items:center;gap:8px}
+  nav button:hover{color:var(--text)}
+  nav button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--text)}
+  nav button:focus-visible{outline:2px solid var(--text);outline-offset:-4px}
+  .count{background:var(--text);color:var(--void);font-family:var(--mono);font-size:10px;border-radius:999px;padding:2px 6px;letter-spacing:0}
+  .subnav{display:flex;gap:26px;border-bottom:1px solid var(--rule-soft);margin:0 0 30px;flex-wrap:wrap}
+  .subnav button{appearance:none;background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--dimmer);padding:0 0 12px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+  .subnav button:hover{color:var(--dim)}
+  .subnav button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--dim)}
+  .subnav button:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+  [hidden]{display:none!important}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin:0 0 14px;display:flex;align-items:center;gap:12px}
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:22px}
+  .muted{color:var(--dim);font-size:14px}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  section[hidden]{display:none}
+  .empty{text-align:center;padding:52px 20px;border:1px dashed var(--rule);border-radius:3px;color:var(--dim)}
+  .empty p{margin:0 0 4px;font-family:var(--display);font-weight:600;font-size:17px;color:var(--text)}
+  .block{margin-bottom:38px}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+  .chip{appearance:none;cursor:pointer;background:var(--panel);border:1px solid var(--rule);color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:7px 13px;border-radius:999px;transition:.15s}
+  .chip:hover{border-color:var(--dim);color:var(--text)}
+  .chip[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--void)}
+  .chip:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+
+  .story{display:grid;grid-template-columns:100px 1fr;gap:24px;padding:22px 0;border-bottom:1px solid var(--rule-soft)}
+  .story:first-child{border-top:1px solid var(--rule-soft)}
+  .srcbox{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dimmer)}
+  .srcname{display:inline-block;padding:3px 7px;border-radius:2px;font-weight:600;margin-bottom:6px;border:1px solid var(--dim);color:var(--dim)}
+  .srcname.solid{background:var(--text);color:var(--void);border-color:var(--text)}
+  .headline{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.24;letter-spacing:-.017em;margin:0 0 7px}
+  .headline a{color:var(--text);text-decoration:none;background-image:linear-gradient(var(--rule),var(--rule));background-size:100% 1px;background-position:0 100%;background-repeat:no-repeat}
+  .headline a:hover{background-image:linear-gradient(var(--text),var(--text))}
+  .dek{margin:0 0 10px;font-size:15px;color:#B4B4B4}
+  .tags{display:flex;gap:6px;flex-wrap:wrap}
+  .tag{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border-radius:2px;padding:2px 6px;color:var(--dim)}
+  .tag.held{border-color:var(--text);background:var(--text);color:var(--void)}
+  .tag.theme{border-style:dashed}
+  .paywall{font-family:var(--mono);font-size:10px;color:var(--dim)}
+
+  .alert{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:start;background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--dimmer);border-radius:0 3px 3px 0;padding:18px 20px;margin-bottom:10px}
+  .alert.act{border-left-color:var(--flag)}
+  .alert.pos{border-left-color:var(--gain)}
+  .alert.neg{border-left-color:var(--loss)}
+  .akind{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--dimmer);min-width:100px;padding-top:3px}
+  .atitle{font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:-.012em;margin:0 0 4px}
+  .abody{margin:0;font-size:14.5px;color:#B0B0B0;line-height:1.5}
+  .awhen{font-family:var(--mono);font-size:11px;color:var(--dimmer);white-space:nowrap;padding-top:4px}
+  .mailed{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--void);background:var(--flag);padding:2px 6px;border-radius:2px;margin-top:8px}
+  .dismiss{background:none;border:none;color:var(--dimmer);cursor:pointer;font-family:var(--mono);font-size:16px;line-height:1;padding:3px 6px;border-radius:2px}
+  .dismiss:hover{color:var(--text);background:var(--panel2)}
+
+  .txnrow{display:grid;grid-template-columns:1.1fr .8fr 1fr .9fr 1.3fr auto;gap:12px;align-items:end}
+  label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+  input[type=text],input[type=number],input[type=date],select{font-family:var(--mono);font-size:15px;padding:10px 12px;border:1px solid var(--rule);border-radius:3px;background:var(--void);color:var(--text);width:100%;color-scheme:dark}
+  input::placeholder{color:var(--dimmer)}
+  input:focus,select:focus{outline:2px solid var(--text);outline-offset:-1px;background:var(--panel2)}
+  .costwrap{display:flex;gap:0}
+  .costwrap input{border-radius:3px 0 0 3px;border-right:none}
+  .costwrap select{width:auto;flex:0 0 84px;border-radius:0 3px 3px 0;cursor:pointer}
+  .fxhint{font-family:var(--mono);font-size:12px;color:var(--dim);margin:14px 0 0;min-height:18px;line-height:1.65}
+  .fxhint b{color:var(--text);font-weight:500}
+  .fxhint .warnline{color:var(--flag)}
+  .btn{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;background:var(--text);color:var(--void);border:1px solid var(--text);border-radius:3px;padding:11px 20px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .btn:hover{background:var(--dim);border-color:var(--dim)}
+  .btn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+  .btn.ghost{background:none;color:var(--dim);border-color:var(--rule)}
+  .btn.ghost:hover{color:var(--text);border-color:var(--dim);background:none}
+
+  .seg{display:flex;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .seg button{flex:1;background:var(--void);border:none;cursor:pointer;font-family:var(--mono);font-size:13px;padding:10px 0;color:var(--dim)}
+  .seg button[aria-pressed="true"]{background:var(--text);color:var(--void)}
+  .seg button:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:14px}
+  th{text-align:right;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:500;padding:0 0 10px;border-bottom:1px solid var(--text)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:13px 0;border-bottom:1px solid var(--rule-soft);text-align:right;font-variant-numeric:tabular-nums}
+  .tkr{font-family:var(--display);font-weight:700;font-size:14.5px}
+  .tkrsub{font-family:var(--body);font-size:12.5px;color:var(--dim);font-weight:400;display:block;margin-top:1px}
+  .ccy{font-size:11px;color:var(--dimmer)}
+  .del{background:none;border:none;color:var(--dimmer);cursor:pointer;font-family:var(--mono);font-size:16px;padding:2px 6px;line-height:1;border-radius:2px}
+  .del:hover{color:var(--loss);background:rgba(255,94,81,.10)}
+  tfoot td{border-bottom:none;border-top:2px solid var(--text);font-weight:600;padding-top:14px}
+  .optbox{width:15px;height:15px;accent-color:var(--text);cursor:pointer}
+  .fxline{font-family:var(--mono);font-size:12.5px;color:var(--dim);margin:16px 0 0;padding-top:14px;border-top:1px solid var(--rule-soft);line-height:1.7}
+  .ledger td{padding:10px 0;font-size:13px}
+  .side{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid var(--rule);color:var(--dim)}
+  .side.sell{border-color:var(--loss);color:var(--loss)}
+  .scrollx{overflow-x:auto}
+
+  .allocbar{display:flex;height:32px;border-radius:3px;overflow:hidden;margin:8px 0 12px;border:1px solid var(--rule)}
+  .alloclegend{display:flex;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .alloclegend div{display:flex;align-items:center;gap:7px}
+  .swatch{width:10px;height:10px;border-radius:2px;flex:0 0 auto}
+
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .metric{background:var(--panel);padding:18px 20px}
+  .metric .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:7px}
+  .metric .v{font-family:var(--display);font-weight:700;font-size:27px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .metric .n{font-size:12.5px;color:var(--dimmer);margin-top:3px}
+
+  .periods{display:flex;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden;width:fit-content;margin-bottom:20px}
+  .periods button{background:var(--panel);border:none;cursor:pointer;font-family:var(--mono);font-size:12px;padding:9px 16px;color:var(--dim)}
+  .periods button[aria-pressed="true"]{background:var(--text);color:var(--void)}
+  .periods button:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+
+  .cormatrix{border-collapse:collapse;font-family:var(--mono);font-size:12px;width:100%}
+  .cormatrix th{border:none;padding:6px 4px;text-align:center;font-size:10px}
+  .cormatrix th:first-child{text-align:left}
+  .cormatrix td{border:1px solid var(--panel);padding:9px 4px;text-align:center}
+  .cormatrix td:first-child{text-align:left;background:none!important;font-family:var(--display);font-weight:700;font-size:12px;padding-right:12px;color:var(--text)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .caption{font-size:13.5px;color:var(--dim);margin:12px 0 0;line-height:1.55}
+  .caption b{color:var(--text)}
+  .warn{border-left:3px solid var(--flag);background:rgba(216,169,58,.07);padding:14px 18px;margin-top:20px;font-size:14px;line-height:1.55;border-radius:0 3px 3px 0;color:#C4C4C4}
+  .warn b{font-family:var(--display);font-weight:700;color:var(--text)}
+  .excl{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin:0 0 14px}
+
+  /* consensus */
+  .conscards{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:12px}
+  .conscard{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:16px 18px}
+  .conscard.none{border-style:dashed;background:none}
+  .conshead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .conshead .tk{font-family:var(--display);font-weight:700;font-size:15px}
+  .conshead .nn{font-family:var(--mono);font-size:10.5px;color:var(--dimmer)}
+  .ratebar{display:flex;height:7px;border-radius:2px;overflow:hidden;background:var(--panel2);margin-bottom:7px}
+  .consrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--dim);padding:5px 0;border-top:1px solid var(--rule-soft)}
+  .consrow b{color:var(--text);font-weight:500}
+  .conswhy{font-size:13.5px;color:var(--dim);margin:0;line-height:1.5}
+  .consnote{font-family:var(--mono);font-size:11.5px;color:var(--dimmer);margin-top:10px;line-height:1.6}
+
+  /* AI + cycle */
+  .gauge{position:relative;height:34px;border:1px solid var(--rule);border-radius:3px;background:var(--panel2);overflow:hidden;margin:10px 0 8px}
+  .gauge .band{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.05);border-left:1px dashed var(--rule);border-right:1px dashed var(--rule)}
+  .gauge .fillb{position:absolute;top:0;bottom:0;left:0;background:rgba(255,255,255,.14)}
+  .gauge .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--text)}
+  .gauge .mark.out{background:var(--flag)}
+  .gscale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--dimmer)}
+  .cyc{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .cycitem{background:var(--panel);padding:16px 18px}
+  .cycitem .k{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .cycitem .v{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .cycitem .ch{font-family:var(--mono);font-size:12px;margin-top:4px;font-variant-numeric:tabular-nums}
+  .cycitem .s{font-family:var(--mono);font-size:10px;color:var(--dimmer);margin-top:8px}
+  .cycitem svg{margin-top:8px}
+
+  svg{display:block;width:100%;height:auto}
+  .ax{stroke:var(--rule);stroke-width:1}
+  .axlab{font-family:var(--mono);font-size:9px;fill:var(--dimmer)}
+  .axtitle{font-family:var(--mono);font-size:10px;fill:var(--dimmer);letter-spacing:.08em;text-transform:uppercase}
+
+  @media(max-width:900px){
+    .grid2{grid-template-columns:1fr}
+    .txnrow{grid-template-columns:1fr 1fr;gap:10px}
+    .txnrow .btn{grid-column:1/-1}
+    .story{grid-template-columns:1fr;gap:8px}
+    .alert{grid-template-columns:1fr;gap:8px}
+    .awhen{padding-top:0}
+    .wrap{padding:0 16px 60px}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="demo" id="statusbar">Loading…</div>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brandrow">
+      <h1 class="wordmark">Floran</h1>
+      <div class="stamp" id="stamp"></div>
+    </div>
+    <div class="valueblock">
+      <div><div class="vlabel">Portfolio value</div><div class="bignum" id="totval">—</div></div>
+      <div class="daychip up" id="daychip">—</div>
+      <div><div class="vlabel">Unrealised P&amp;L</div><div class="mono" id="totpnl" style="font-size:19px;font-weight:600">—</div></div>
+      <div><div class="vlabel">Realised</div><div class="mono" id="totreal" style="font-size:19px;font-weight:600">—</div></div>
+    </div>
+    <div class="strip" id="strip"></div>
+  </header>
+
+  <nav role="tablist">
+    <button role="tab" id="tab-news" aria-selected="true" aria-controls="p-news">News</button>
+    <button role="tab" id="tab-alerts" aria-selected="false" aria-controls="p-alerts">Alerts <span class="count" id="acount">0</span></button>
+    <button role="tab" id="tab-pos" aria-selected="false" aria-controls="p-pos">Positions</button>
+    <button role="tab" id="tab-risk" aria-selected="false" aria-controls="p-risk">Risk</button>
+  </nav>
+
+  <section id="p-news" role="tabpanel" aria-labelledby="tab-news">
+    <div class="chips" id="chips"></div>
+    <div id="stories"></div>
+  </section>
+
+  <section id="p-alerts" role="tabpanel" aria-labelledby="tab-alerts" hidden>
+    <p class="eyebrow">Emailed once daily after the US close · residual beyond 3σ and at least 4%</p>
+    <div id="alerts"></div>
+  </section>
+
+  <section id="p-pos" role="tabpanel" aria-labelledby="tab-pos" hidden>
+    <div class="subnav" role="tablist" aria-label="Positions views">
+      <button role="tab" id="sub-port" aria-selected="true" aria-controls="sp-port">Portfolio</button>
+      <button role="tab" id="sub-trade" aria-selected="false" aria-controls="sp-trade">Trades</button>
+    </div>
+
+    <div id="sp-port" role="tabpanel" aria-labelledby="sub-port">
+      <p class="eyebrow">Holdings</p>
+      <div class="scrollx" id="holdings"></div>
+
+      <div id="allocwrap" class="block" style="margin-top:38px">
+        <p class="eyebrow">Allocation</p>
+        <div class="allocbar" id="allocbar"></div>
+        <div class="alloclegend" id="alloclegend"></div>
+      </div>
+
+      <p class="eyebrow">Analyst consensus</p>
+      <div class="block">
+        <div class="conscards" id="consensus"></div>
+        <p class="caption">Every figure is shown against where it stands today, so the percentage is the analysts' implied up- or downside rather than a number you have to do arithmetic on. Consensus <b>level</b> is context — it sits at some flavour of Buy for most large caps most of the time, and whatever it knows is already in the price. The two rows worth reading are <b>spread</b>, which shows whether analysts actually agree, and <b>revisions</b>, which show which way the estimates are moving. Only revisions feed the alerts.</p>
+      </div>
+    </div>
+
+    <div id="sp-trade" role="tabpanel" aria-labelledby="sub-trade" hidden>
+      <p class="eyebrow">Record a trade</p>
+      <div class="card block">
+        <div class="txnrow">
+          <div><label for="f-tkr">Ticker</label><input type="text" id="f-tkr" placeholder="MSFT" autocomplete="off" list="tickers">
+            <datalist id="tickers"></datalist></div>
+          <div><label for="f-side">Side</label>
+            <div class="seg" id="f-side">
+              <button type="button" data-side="buy" aria-pressed="true">Buy</button>
+              <button type="button" data-side="sell" aria-pressed="false">Sell</button>
+            </div>
+          </div>
+          <div><label for="f-date">Trade date</label><input type="date" id="f-date"></div>
+          <div><label for="f-qty">Quantity</label><input type="number" id="f-qty" step="any" min="0" placeholder="22"></div>
+          <div><label for="f-price">Price paid</label>
+            <div class="costwrap">
+              <input type="number" id="f-price" step="any" min="0" placeholder="329.00">
+              <select id="f-ccy" aria-label="Currency"></select>
+            </div>
+          </div>
+          <button class="btn" id="f-add">Record</button>
+        </div>
+        <p class="fxhint" id="fxhint"></p>
+      </div>
+
+      <p class="eyebrow">Transaction log</p>
+      <div class="scrollx" id="ledger"></div>
+      <p class="fxline" style="border:none;padding-top:12px">
+        Trades are stored in this browser only and never leave it — that is what lets the
+        repository be public. <button class="btn ghost" id="f-export" style="margin-left:8px">Export backup</button>
+      </p>
+    </div>
+  </section>
+
+  <section id="p-risk" role="tabpanel" aria-labelledby="tab-risk" hidden>
+    <p class="eyebrow">Return</p>
+    <div class="periods" id="periods"></div>
+    <div class="metrics block" id="retmetrics"></div>
+
+    <p class="eyebrow">Risk profile · trailing 3 years, annualised</p>
+    <div class="metrics block" id="riskmetrics"></div>
+
+    <p class="eyebrow">AI exposure</p>
+    <div class="grid2 block">
+      <div class="card">
+        <div class="vlabel">Factor loading · AI basket, market stripped out</div>
+        <div class="bignum" id="aibeta" style="font-size:44px;margin:10px 0 2px">—</div>
+        <div class="gauge" id="aigauge"></div>
+        <div class="gscale"><span>0.0</span><span>0.5</span><span>1.0</span></div>
+        <p class="caption" id="ainote"></p>
+      </div>
+      <div class="card">
+        <div class="vlabel">Look-through AI-linked revenue</div>
+        <div class="bignum" id="ailook" style="font-size:44px;margin:10px 0 2px">—</div>
+        <div class="allocbar" id="aibar" style="height:22px"></div>
+        <p class="caption" id="ailooknote"></p>
+      </div>
+    </div>
+    <div class="warn" id="aioverlap"></div>
+
+    <p class="eyebrow" style="margin-top:38px">Cycle indicators · primary data</p>
+    <div class="block">
+      <div class="cyc" id="cycle"></div>
+      <p class="caption">Published numbers, not commentary — these are what the research notes are written about, available sooner. Sell-side research itself is client-licensed and cannot be pulled; the consensus panel on Positions is where those banks' views actually surface.</p>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <p class="eyebrow">Correlation</p>
+        <div class="card">
+          <table class="cormatrix" id="cormatrix"></table>
+          <p class="caption">Brighter means the two move together. Diversification only works where this is dark.</p>
+        </div>
+      </div>
+      <div>
+        <p class="eyebrow">Efficient frontier</p>
+        <div class="card">
+          <p class="excl" id="excl"></p>
+          <div id="frontier"></div>
+          <p class="caption" id="frontier-note"></p>
+        </div>
+      </div>
+    </div>
+    <div class="warn"><b>A diagnostic, not an instruction.</b> Mean-variance optimisation is very sensitive to its inputs — nudge one expected-return estimate by a percentage point and the "optimal" weights can swing wildly. Useful for noticing unintended concentration. Not a portfolio to copy.</div>
+  </section>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. Data layer
+   Everything here comes from data/*.json, written into the repo
+   by the GitHub Actions jobs. Nothing below this section knows
+   or cares where the numbers came from — which is the point.
+   ============================================================ */
+/* Seeded PRNG. Used only by the efficient-frontier sampler, so the same
+   portfolio always draws the same cloud instead of shimmering on every render.
+   No market data is generated anywhere in this file any more. */
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+function cov(a,b){const ma=mean(a),mb=mean(b);let s=0;for(let i=0;i<a.length;i++)s+=(a[i]-ma)*(b[i]-mb);return s/(a.length-1)}
+const sd=a=>Math.sqrt(cov(a,a));
+const corr=(a,b)=>{const d=sd(a)*sd(b);return d>0?cov(a,b)/d:0};   /* flat series correlate with nothing */
+
+let CFG={},PRICES={series:{}},FXDATA={},NEWSDATA={},CONSDATA={},SRV={},STATUS={},CYCLEDATA=[];
+let CATALOG={},PXINDEX={};   /* every instrument with a feed, and where its file lives */
+let ISO=[],NDAYS=0,FIRST="",LAST="",IDX=new Map();
+let FX={EUR:1},CURRENCIES=["EUR"];
+let INSTR={},NATPX={},EURPX={},RET={},DAY={};
+let mkt=[],aiX=[];
+let CONSENSUS={},AI_REV={},CYCLE=[],SOURCES=[],STORIES=[];
+
+async function loadJSON(path,fallback){
+  try{
+    const r=await fetch(path+"?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok)throw new Error(r.status);
+    return await r.json();
+  }catch(e){ return fallback; }
+}
+
+/* ---- helpers shared with the rest of the file ---- */
+const isoOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const prettyDate=s=>s?new Date(s+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
+
+function idxOnOrBefore(s){
+  if(!NDAYS)return 0;
+  if(IDX.has(s))return IDX.get(s);
+  if(s<=FIRST)return 0;
+  if(s>=LAST)return NDAYS-1;
+  let lo=0,hi=NDAYS-1;
+  while(lo<hi){const m=(lo+hi+1)>>1;if(ISO[m]<=s)lo=m;else hi=m-1}
+  return lo;
+}
+
+/* Native close series converted to euros, carrying the last published FX rate
+   forward across days the ECB did not publish (holidays differ by country). */
+function eurSeries(ticker,ccy){
+  const raw=(PRICES.series||{})[ticker]||{};
+  const dates=Object.keys(raw).sort();
+  if(ccy==="EUR")return {series:Object.fromEntries(dates.map(d=>[d,raw[d]])),dates};
+  const rates=(FXDATA.euros_per_unit||{})[ccy]||{};
+  const rd=Object.keys(rates).sort();
+  const out={};let ri=0,last=null;
+  for(const d of dates){
+    while(ri<rd.length&&rd[ri]<=d){last=rates[rd[ri]];ri++}
+    if(last===null)continue;
+    out[d]=raw[d]*last;
+  }
+  return {series:out,dates:Object.keys(out)};
+}
+
+function alignedReturns(series,axis){
+  const out=[];let last=null;
+  const px=[];
+  for(const d of axis){
+    if(series[d]!==undefined)last=series[d];
+    px.push(last);
+  }
+  for(let i=1;i<px.length;i++){
+    out.push(px[i-1]&&px[i]?px[i]/px[i-1]-1:0);
+  }
+  return out;
+}
+
+/* .us symbols quote in dollars, everything else here in euros. Only used for
+   the AI basket, where getting this roughly right matters more than exactly. */
+const basketCcy=sym=>/\.us$/i.test(sym)?"USD":"EUR";
+
+/* Which tickers do we actually need prices for? Whatever is in the transaction
+   log, plus the benchmark and the AI basket. Everything else in the catalogue
+   stays on the server until the day it is bought. */
+function neededTickers(){
+  const held=new Set(txns.map(x=>String(x.t).toUpperCase()));
+  (CFG.watchlist||[]).forEach(t=>held.add(String(t).toUpperCase()));
+  const b=String(PXINDEX.benchmark||"").toUpperCase();
+  if(b)held.add(b);
+  (PXINDEX.ai_basket||[]).forEach(t=>held.add(String(t).toUpperCase()));
+  return [...held].filter(t=>CATALOG[t]);
+}
+
+async function loadPrices(tickers){
+  const missing=tickers.filter(t=>!PRICES.series[t]);
+  if(!missing.length)return;
+  const got=await Promise.all(missing.map(t=>loadJSON(CATALOG[t].file,null)));
+  got.forEach((blob,i)=>{ if(blob&&blob.series)PRICES.series[missing[i]]=blob.series; });
+}
+
+function buildAll(){
+  INSTR={};CONSENSUS={};AI_REV={};RET={};NATPX={};EURPX={};DAY={};
+  /* the catalogue is every instrument with a working feed, not just the few
+     that get the consensus and filings treatment */
+  Object.entries(CATALOG).forEach(([t,m])=>{
+    INSTR[t]={name:m.name,ccy:m.ccy,ai:m.ai??0.1,opt:m.opt!==false,idio:0,
+              tracked:false,stale:!!m.stale};
+    AI_REV[t]=m.ai??0.1;
+  });
+  (CFG.instruments||[]).forEach(i=>{
+    const t=i.ticker.toUpperCase();
+    INSTR[t]={...(INSTR[t]||{}),name:i.name,ccy:i.currency,ai:i.ai_revenue_share??0.1,
+              opt:i.include_in_optimiser!==false,idio:0,tracked:true};
+    AI_REV[t]=i.ai_revenue_share??0.1;
+  });
+
+  /* today's FX, and the list of currencies we actually hold */
+  const per=FXDATA.euros_per_unit||{};
+  FX={EUR:1};
+  Object.keys(per).forEach(c=>{
+    const ds=Object.keys(per[c]||{});
+    if(ds.length)FX[c]=per[c][ds.sort()[ds.length-1]];
+  });
+  CURRENCIES=["EUR",...Object.keys(FX).filter(c=>c!=="EUR").sort()];
+
+  /* date axis comes from the benchmark, so every series is compared like for like */
+  const bench=CFG.benchmark||{ticker:"WORLD",currency:"EUR"};
+  const bt=String(bench.ticker||"WORLD").toUpperCase();
+  const b=eurSeries(bt,(CATALOG[bt]||{}).ccy||bench.currency||"EUR");
+  ISO=b.dates.slice(-(CFG.history_days||780));
+  NDAYS=ISO.length;FIRST=ISO[0]||"";LAST=ISO[NDAYS-1]||"";
+  IDX=new Map(ISO.map((s,i)=>[s,i]));
+  mkt=NDAYS?alignedReturns(b.series,ISO):[];
+
+  Object.keys(PRICES.series).forEach(t=>{
+    if(!INSTR[t])INSTR[t]={name:t,ccy:"EUR",ai:0.1,opt:true,idio:0,tracked:false};
+    const e=eurSeries(t,INSTR[t].ccy);
+    RET[t]=NDAYS?alignedReturns(e.series,ISO):[];
+    const nat=(PRICES.series||{})[t]||{};
+    const nd=Object.keys(nat).sort();
+    NATPX[t]=nd.length?nat[nd[nd.length-1]]:0;
+    EURPX[t]=e.series[LAST]??(nd.length?nat[nd[nd.length-1]]*(FX[INSTR[t].ccy]||1):0);
+    DAY[t]=RET[t].length?RET[t][RET[t].length-1]:0;
+    INSTR[t].idio=RET[t].length>30?sd(RET[t]):0;
+  });
+
+  /* AI factor: equal-weight basket, then the market regressed out of it.
+     Subtracting the market outright is not enough — a basket running at 1.3x
+     the market keeps 0.3 of market inside it, which leaks into every loading. */
+  const basket=(PXINDEX.ai_basket||[])
+    .map(sym=>{const e=eurSeries(String(sym).toUpperCase(),basketCcy(String(sym).replace(/^_AI:/i,"")));
+               return NDAYS?alignedReturns(e.series,ISO):[]})
+    .filter(a=>a.length===Math.max(0,NDAYS-1)&&a.some(x=>x!==0));
+  if(basket.length&&mkt.length){
+    const raw=mkt.map((_,i)=>mean(basket.map(a=>a[i])));
+    const beta=cov(raw,mkt)/cov(mkt,mkt);
+    aiX=raw.map((v,i)=>v-beta*mkt[i]);
+  }else aiX=mkt.map(()=>0);
+
+  CONSENSUS=CONSDATA.instruments||{};
+  SOURCES=(NEWSDATA.sources||[]).map(s=>({id:s.id,label:s.label,solid:s.id==="ft",paywall:s.paywall}));
+  STORIES=(NEWSDATA.stories||[]).map(s=>({...s,t:relTime(s.at)}));
+  CYCLE=Array.isArray(CYCLEDATA)?CYCLEDATA:(CYCLEDATA.items||[]);
+}
+
+function relTime(iso){
+  if(!iso)return "";
+  const t=Date.parse(iso);
+  if(isNaN(t))return iso.slice(0,10);
+  const m=Math.floor((Date.now()-t)/60000);
+  if(m<1)return "just now";
+  if(m<60)return m+" min ago";
+  if(m<48*60)return Math.floor(m/60)+" hr ago";
+  return new Date(t).toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+}
+
+/* ---- the shims the rest of the file was already written against ---- */
+const DEFAULT_META={name:"Not in settings.json",ccy:"EUR",ai:0.1,idio:0.02,opt:true};
+function assetMeta(t){return INSTR[t]||DEFAULT_META}
+const nativePx=t=>NATPX[t]||0;
+const ccyOf=t=>assetMeta(t).ccy;
+const eurPx=t=>EURPX[t]||0;
+const dayChg=t=>DAY[t]||0;
+function series(t){return RET[t]||new Array(Math.max(0,NDAYS-1)).fill(0)}
+function fxHist(c){
+  if(c==="EUR")return ISO.map(()=>1);
+  const r=(FXDATA.euros_per_unit||{})[c]||{};
+  const rd=Object.keys(r).sort();let i=0,last=FX[c]||1;
+  return ISO.map(d=>{while(i<rd.length&&rd[i]<=d){last=r[rd[i]];i++}return last});
+}
+const _fxc={};
+const fxOn=(c,date)=>{
+  if(c==="EUR")return 1;
+  if(!_fxc[c])_fxc[c]=fxHist(c);
+  return _fxc[c][idxOnOrBefore(date)]||FX[c]||1;
+};
+const consensusOf=t=>CONSENSUS[t]||{cov:"unknown",why:"Not fetched yet."};
+const aiRevOf=t=>AI_REV[t]??0.1;
+
+
+/* ============================================================
+   2. Statistics  (mean / cov / sd / corr live in section 1,
+      because the AI factor needs them at construction time)
+   ============================================================ */
+function cumret(a,n){let p=1;for(let i=Math.max(0,a.length-n);i<a.length;i++)p*=(1+a[i]);return p-1}
+function maxDD(a){let p=1,pk=1,d=0;for(const x of a){p*=(1+x);if(p>pk)pk=p;d=Math.min(d,p/pk-1)}return d}
+function residuals(t){const s=series(t),b=cov(s,mkt)/cov(mkt,mkt);return{beta:b,r:s.map((x,i)=>x-b*mkt[i])}}
+function residToday(t){const{beta,r}=residuals(t),sig=sd(r),last=r[r.length-1];return{beta,sigma:sig,resid:last,z:sig?last/sig:0}}
+const SIGMA_TRIGGER=()=>CFG.alerts?.residual_sigma??3, ABS_FLOOR=()=>CFG.alerts?.residual_floor??0.04;
+
+/* Money-weighted return. Only possible because trades carry dates. */
+function xirr(flows){
+  if(flows.length<2)return null;
+  const t0=flows[0].d.getTime();
+  const yrs=d=>(d.getTime()-t0)/(365.25*864e5);
+  const f=r=>flows.reduce((s,c)=>s+c.a/Math.pow(1+r,yrs(c.d)),0);
+  let lo=-0.9499,hi=10;
+  if(f(lo)*f(hi)>0)return null;
+  for(let i=0;i<220;i++){const m=(lo+hi)/2;if(f(lo)*f(m)<=0)hi=m;else lo=m}
+  return (lo+hi)/2;
+}
+
+/* ============================================================
+   3. State — a transaction log, not a holdings list
+   ============================================================ */
+/* Transactions live in this browser and nowhere else. They are never sent to
+   GitHub, which is what allows the repo to be public. Clearing site data or
+   using a different browser means starting the log again — the export button
+   below the log is the backup. */
+const LSKEY="floran.transactions.v1";
+const OPTKEY="floran.optimiser.v1";
+
+function loadTxns(){
+  try{
+    const raw=localStorage.getItem(LSKEY);
+    if(!raw)return[];
+    const parsed=JSON.parse(raw);
+    return Array.isArray(parsed)?parsed.filter(x=>x&&x.t&&x.date&&x.qty>0&&x.price>0):[];
+  }catch(e){return[]}
+}
+function saveTxns(){
+  try{localStorage.setItem(LSKEY,JSON.stringify(txns))}
+  catch(e){console.warn("could not save transactions:",e)}
+}
+function loadOpt(){try{return JSON.parse(localStorage.getItem(OPTKEY))||{}}catch(e){return{}}}
+function saveOpt(){try{localStorage.setItem(OPTKEY,JSON.stringify(optIn))}catch(e){}}
+
+let txns=loadTxns();
+let nextId=txns.reduce((a,x)=>Math.max(a,x.id||0),0)+1;
+let optIn=loadOpt();
+let dismissed=new Set();
+let side="buy";
+
+const SWATCH=["#FFFFFF","#C4C4C4","#8C8C8C","#5E5E5E","#3A3A3A","#E0E0E0","#A0A0A0","#4A4A4A"];
+const SYM={EUR:"€",USD:"$",GBP:"£",CHF:"CHF "};
+const eur=(n,d=2)=>"€"+n.toLocaleString("nl-NL",{minimumFractionDigits:d,maximumFractionDigits:d});
+const native=(n,c,d=2)=>SYM[c]+n.toLocaleString("nl-NL",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=(n,d=2)=>(n>=0?"+":"−")+(Math.abs(n)*100).toFixed(d)+"%";
+const pp=(n,d=1)=>(n>=0?"+":"−")+Math.abs(n).toFixed(d)+"%";
+const cls=n=>n>=0?"up":"down";
+const arw=n=>`<span class="arw">${n>=0?"▲":"▼"}</span> `;
+const signed=n=>(n>=0?"+":"−")+eur(Math.abs(n),0);
+
+/* ---- the ledger: derive everything from the transaction log ---- */
+function ledger(){
+  const by=new Map();let realisedAll=0;
+  const sorted=[...txns].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id-b.id);
+  for(const x of sorted){
+    let p=by.get(x.t);
+    if(!p){p={t:x.t,qty:0,costE:0,costN:0,realised:0,first:x.date,last:x.date,n:0};by.set(x.t,p)}
+    p.last=x.date;p.n++;
+    const unitE=x.price*x.fx;
+    if(x.side==="buy"){p.qty+=x.qty;p.costE+=unitE*x.qty;p.costN+=x.price*x.qty}
+    else if(p.qty>1e-12){
+      const q=Math.min(x.qty,p.qty),avgE=p.costE/p.qty,avgN=p.costN/p.qty;
+      p.realised+=(unitE-avgE)*q;realisedAll+=(unitE-avgE)*q;
+      p.costE-=avgE*q;p.costN-=avgN*q;p.qty-=q;
+      if(p.qty<1e-12){p.qty=0;p.costE=0;p.costN=0}
+    }
+  }
+  const rows=[...by.values()].filter(p=>p.qty>1e-9).map(p=>{
+    const m=assetMeta(p.t);
+    const avgE=p.costE/p.qty, avgN=p.costN/p.qty, avgFx=p.costN?p.costE/p.costN:1;
+    const val=p.qty*eurPx(p.t), book=p.costE;
+    const hasFeed=!!(PRICES.series[p.t]&&Object.keys(PRICES.series[p.t]).length);
+    return{...p,name:m.name,ccy:m.ccy,pxN:nativePx(p.t),val,book,pnl:val-book,hasFeed,
+      ret:book?(val-book)/book:0,avgE,avgN,avgFx,day:dayChg(p.t),
+      opt:optIn[p.t]!==undefined?optIn[p.t]:(m.idio<=0.025)};
+  });
+  return{rows,realisedAll};
+}
+const rowsOf=()=>ledger().rows;
+
+/* currency component of P&L: today's rate versus the average rate actually paid */
+function fxEffect(rows){
+  return rows.reduce((a,r)=>r.ccy==="EUR"?a:a+r.qty*r.pxN*(FX[r.ccy]-r.avgFx),0);
+}
+function pfWeights(list){const v=list.map(r=>r.val),t=v.reduce((a,b)=>a+b,0)||1;return v.map(x=>x/t)}
+function seriesOf(list){
+  const L=Math.max(0,NDAYS-1);            /* returns, so one shorter than the dates */
+  if(!list.length)return new Array(L).fill(0);
+  const w=pfWeights(list),ss=list.map(r=>series(r.t)),o=[];
+  for(let i=0;i<L;i++){let s=0;for(let j=0;j<ss.length;j++)s+=w[j]*(ss[j][i]||0);o.push(s)}
+  return o;
+}
+function moneyWeighted(rows){
+  const flows=[...txns].sort((a,b)=>a.date<b.date?-1:1)
+    .map(x=>({d:new Date(x.date+"T12:00:00"),a:(x.side==="buy"?-1:1)*x.qty*x.price*x.fx}));
+  if(!flows.length)return null;
+  flows.push({d:new Date(),a:rows.reduce((a,r)=>a+r.val,0)});
+  return xirr(flows);
+}
+
+/* ============================================================
+   4. Header
+   ============================================================ */
+function renderHeader(){
+  const{rows,realisedAll}=ledger();
+  const val=rows.reduce((a,r)=>a+r.val,0),book=rows.reduce((a,r)=>a+r.book,0);
+  const pnl=val-book,day=rows.length?(seriesOf(rows).at(-1)||0):0;
+  document.getElementById("totval").textContent=eur(val,0);
+  const c=document.getElementById("daychip");
+  c.className="daychip "+cls(day);c.innerHTML=arw(day)+pct(day)+" today";
+  const p=document.getElementById("totpnl");
+  p.className="mono "+cls(pnl);
+  p.innerHTML=arw(pnl)+signed(pnl)+" ("+pct(book?pnl/book:0,1)+")";
+  const rl=document.getElementById("totreal");
+  rl.className="mono "+cls(realisedAll);
+  rl.innerHTML=Math.abs(realisedAll)<0.005?'<span style="color:var(--dimmer)">—</span>':arw(realisedAll)+signed(realisedAll);
+  document.getElementById("strip").innerHTML=rows.map(r=>{
+    const d=r.day;
+    return `<div class="stripcell"><div class="t">${r.t}</div><div class="d ${cls(d)}">${arw(d)}${pct(d,2)}</div></div>`;
+  }).join("")||`<div class="stripcell"><div class="d" style="color:var(--dim)">No positions yet</div></div>`;
+}
+
+/* ============================================================
+   5. News — one entry per source, plus theme tags
+   ============================================================ */
+/* SOURCES and STORIES are filled from data/news.json in section 1. */
+let newsFilter="all";
+function renderNews(){
+  const held=new Set(rowsOf().map(r=>r.t));
+  const opts=[["all","Everything"],["mine","My holdings"],["th:AI","AI"]].concat(SOURCES.map(s=>[s.id,s.label]));
+  document.getElementById("chips").innerHTML=opts.map(([k,l])=>
+    `<button class="chip" data-f="${k}" aria-pressed="${newsFilter===k}">${l}</button>`).join("");
+  let list=STORIES;
+  if(newsFilter==="mine")list=STORIES.filter(s=>s.tags.some(t=>held.has(t)));
+  else if(newsFilter.startsWith("th:"))list=STORIES.filter(s=>s.th.includes(newsFilter.slice(3)));
+  else if(newsFilter!=="all")list=STORIES.filter(s=>s.src===newsFilter);
+  document.getElementById("stories").innerHTML=list.length?list.map(s=>{
+    const src=SOURCES.find(x=>x.id===s.src)||{label:s.src};
+    return `<article class="story">
+      <div class="srcbox"><span class="srcname ${src.solid?"solid":""}">${src.label}</span><br>${s.t}
+      ${src.paywall?'<br><span class="paywall">↗ opens in FT</span>':''}</div>
+      <div><h3 class="headline"><a href="${s.url||"#"}" target="_blank" rel="noopener noreferrer">${s.h}</a></h3>
+      <p class="dek">${s.d}</p>
+      <div class="tags">${s.tags.map(t=>`<span class="tag ${held.has(t)?"held":""}">${t}</span>`).join("")}
+      ${s.th.map(t=>`<span class="tag theme">${t}</span>`).join("")}</div></div>
+    </article>`;}).join(""):
+    `<div class="empty"><p>${STORIES.length?"Nothing from this filter right now":"No headlines fetched yet"}</p><span class="muted">${STORIES.length?"Try another, or check back after the next refresh.":"Run the refresh workflow once and this fills in."}</span></div>`;
+  document.querySelectorAll("#chips .chip").forEach(c=>c.onclick=()=>{newsFilter=c.dataset.f;renderNews()});
+}
+
+/* ============================================================
+   6. Alert rules — each takes context, returns an alert or null
+   ============================================================ */
+const ALERT_RULES=[
+  function thesisCheck(ctx){
+    const scored=ctx.rows.map(r=>({...r,...residToday(r.t)}));
+    const top=scored.sort((a,b)=>Math.abs(b.z)-Math.abs(a.z))[0];
+    if(!top)return null;
+    const fires=Math.abs(top.z)>=SIGMA_TRIGGER()&&Math.abs(top.resid)>=ABS_FLOOR();
+    return{id:"resid",kind:"Thesis check",tone:fires?(top.resid>=0?"pos":"neg"):"",when:"At close",mail:fires,
+      title:`${top.t}: ${pct(top.resid,1)} beyond what the market explains`,
+      body:`Moved ${pct(top.day,1)} while the market moved ${pct(ctx.mktDay,1)}. Stripping out the ${top.beta.toFixed(2)} beta leaves a residual of ${pct(top.resid,1)}, or ${Math.abs(top.z).toFixed(1)}σ against its own history. `+
+        (fires?`Past the ${SIGMA_TRIGGER()}σ and ${(ABS_FLOOR()*100).toFixed(0)}% bar, so this goes out in tonight's email.`:`Below the ${SIGMA_TRIGGER()}σ and ${(ABS_FLOOR()*100).toFixed(0)}% bar, so no email — noted here only.`)};
+  },
+  function revisionBreak(ctx){
+    const cov=ctx.rows.map(r=>({r,c:consensusOf(r.t)}))
+      .filter(x=>x.c.cov==="yes"&&typeof x.c.e3==="number");
+    const worst=cov.sort((a,b)=>a.c.e3-b.c.e3)[0];
+    if(!worst||worst.c.e3>ctx.cfg.estimate_cut_warn)return null;
+    return{id:"rev",kind:"Estimates",tone:"act",when:"90-day",
+      title:`${worst.r.t}: consensus target cut ${Math.abs(worst.c.e3).toFixed(1)}% over three months`,
+      body:(worst.c.dn!==undefined&&worst.c.up!==undefined
+              ?`${worst.c.dn} analysts have revised down against ${worst.c.up} up. `
+              :`Measured from ${worst.c.history_days||0} days of snapshots this dashboard took itself, since revision history is a paid field everywhere else. `)
+            +`Revisions move slowly and often lead the price rather than follow it — which is the opposite of the rating itself, still sitting at ${ratingWord(worst.c)}.`};
+  },
+  function consensusDispersion(ctx){
+    const cov=ctx.rows.map(r=>({r,c:consensusOf(r.t)}))
+      .filter(x=>x.c.cov==="yes"&&x.c.lo>0&&x.c.hi>0&&x.c.mid>0)
+      .map(x=>({...x,sp:(x.c.hi-x.c.lo)/x.c.mid}));
+    const wide=cov.sort((a,b)=>b.sp-a.sp)[0];
+    if(!wide||wide.sp<ctx.cfg.target_spread_warn)return null;
+    return{id:"disp",kind:"Disagreement",tone:"",when:"Current",
+      title:`Analysts disagree sharply on ${wide.r.t} — targets span ${(wide.sp*100).toFixed(0)}% of the mean`,
+      body:`${native(wide.c.lo,wide.c.ccy,0)} to ${native(wide.c.hi,wide.c.ccy,0)} across ${wide.c.n} analysts. A wide spread means the mean target is an average of incompatible views rather than a shared one, and is worth less than it looks.`};
+  },
+  function aiConcentration(ctx){
+    if(ctx.aiLook<(ctx.cfg.ai_exposure_warn??0.30)&&ctx.aiBeta<0.45)return null;
+    return{id:"ai",kind:"Concentration",tone:"act",when:"Trailing 1y",
+      title:`${(ctx.aiLook*100).toFixed(0)}% of the book is AI-linked, at a factor loading of ${ctx.aiBeta.toFixed(2)}`,
+      body:`Counting look-through exposure inside the index fund, not just the obvious names. One theme this size means your results and the market's opinion of AI are close to the same thing. Deliberate is fine; unnoticed is not.`};
+  },
+  function cycleTurn(){
+    const neg=CYCLE.filter(c=>typeof c.yoy==="number"&&c.yoy<0);
+    if(!neg.length)return null;
+    const pos=CYCLE.filter(c=>c.yoy>25).map(c=>c.k);
+    return{id:"cyc",kind:"Cycle",tone:"act",when:"Latest prints",
+      title:`${neg[0].k} down ${Math.abs(neg[0].yoy).toFixed(1)}% year on year while ${pos[0]||"the rest of the complex"} accelerates`,
+      body:`Equipment orders lead revenue by several quarters, so the two disagreeing is normal at a turn and informative about which way it is turning. Worth watching rather than acting on: one print is not a trend.`};
+  },
+  function concentration(ctx){
+    if(!ctx.rows.length)return null;
+    const top=[...ctx.rows].sort((a,b)=>b.val-a.val)[0],w=top.val/ctx.total;
+    if(w<(ctx.cfg.concentration_warn??0.35))return null;
+    return{id:"conc",kind:"Concentration",tone:"act",when:"Now",
+      title:`${top.t} is ${(w*100).toFixed(0)}% of the portfolio`,
+      body:`A single position above a third of the book means your results are largely that position's results. Worth deciding deliberately rather than by drift.`};
+  },
+  function fxDrift(ctx){
+    if(Math.abs(ctx.fxEffect)<200)return null;
+    return{id:"fx",kind:"Currency",tone:"",when:"Since purchase",
+      title:`${signed(ctx.fxEffect)} of your P&L is currency, not company`,
+      body:`Your non-euro positions have been revalued by exchange-rate moves since you bought them, measured against the rate on each trade date rather than a single blended guess. This is separate from anything the underlying businesses did.`};
+  },
+  function pairCorr(ctx){
+    let worst=null;
+    for(let i=0;i<ctx.rows.length;i++)for(let j=i+1;j<ctx.rows.length;j++){
+      const c=corr(series(ctx.rows[i].t),series(ctx.rows[j].t));
+      if(!worst||c>worst.c)worst={c,a:ctx.rows[i].t,b:ctx.rows[j].t};
+    }
+    if(!worst||worst.c<(ctx.cfg.correlation_warn??0.6))return null;
+    return{id:"corr",kind:"Correlation",tone:"act",when:"3-year",
+      title:`${worst.a} and ${worst.b} move together at ${worst.c.toFixed(2)}`,
+      body:`These two are doing much the same job. Holding both gives you less diversification than the position count suggests.`};
+  },
+  function thesisReview(ctx){
+    if(!ctx.rows.length)return null;
+    const oldest=[...ctx.rows].sort((a,b)=>a.first<b.first?-1:1)[0];
+    const yrs=(Date.now()-new Date(oldest.first+"T12:00:00"))/(365.25*864e5);
+    if(yrs<1.5)return null;
+    return{id:"review",kind:"Annual review",tone:"",when:"Yearly",
+      title:`${oldest.t} has been held ${yrs.toFixed(1)} years without a review`,
+      body:`The alert engine catches sudden shocks; a holding that slowly stops being worth owning never produces a large residual and never triggers an email. The live version diffs the new annual report's risk factors against last year's and surfaces what management newly worries about — once a year, which is the right frequency for this.`};
+  },
+  ];
+function ratingWord(c){
+  if(!c.dist||!c.dist.length)return "No rating";
+  return RATING_WORDS[c.dist.indexOf(Math.max(...c.dist))];
+}
+function buildCtx(){
+  const rows=rowsOf().filter(r=>r.hasFeed);
+  const total=rows.reduce((a,r)=>a+r.val,0)||1;
+  return{rows,total,cfg:{...(CFG.alerts||{})},mktDay:mkt.length?mkt[mkt.length-1]:0,fxEffect:fxEffect(rows),
+    aiBeta:rows.length?aiLoading(rows):0,
+    aiLook:rows.reduce((a,r)=>a+(r.val/total)*aiRevOf(r.t),0)};
+}
+function buildAlerts(){
+  const ctx=buildCtx();
+  /* Rules computed here need position sizes, so they can only run in the browser.
+     Rules computed on the server (residuals, revisions, filings) arrive already
+     built in alerts.json — those are the ones that can be emailed. */
+  const local=ALERT_RULES.map(f=>{try{return f(ctx)}catch(e){return null}}).filter(Boolean);
+  const remote=(SRV.alerts||[]).map(a=>({...a,remote:true}));
+  /* The server residual check covers every instrument and is the one that can be
+     emailed, so the browser copy is suppressed whenever the server has spoken. */
+  const serverDidResiduals=remote.some(a=>String(a.id).startsWith("resid"));
+  const seen=new Set();
+  return [...remote,...local].filter(a=>{
+    if(!a||dismissed.has(a.id)||seen.has(a.id))return false;
+    if(serverDidResiduals&&a.id==="resid")return false;
+    seen.add(a.id);return true;
+  });
+}
+function renderAlerts(){
+  const list=buildAlerts(),el=document.getElementById("acount");
+  el.textContent=list.length;el.style.display=list.length?"":"none";
+  document.getElementById("alerts").innerHTML=list.length?list.map(a=>`
+    <div class="alert ${a.tone}">
+      <div class="akind">${a.kind}</div>
+      <div><p class="atitle">${a.title}</p><p class="abody">${a.body}</p>
+        ${a.mail?'<span class="mailed">✉ in tonight\'s email</span>':''}</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="awhen">${a.when}</span>
+        <button class="dismiss" data-id="${a.id}" aria-label="Dismiss">×</button></div>
+    </div>`).join(""):
+    `<div class="empty"><p>Nothing needs your attention</p><span class="muted">Alerts appear when a holding moves beyond what the market explains, estimates are revised, concentration builds up, or the calendar has something for you.</span></div>`;
+  document.querySelectorAll(".dismiss").forEach(b=>b.onclick=()=>{dismissed.add(b.dataset.id);renderAlerts()});
+}
+
+/* ============================================================
+   7. Positions
+   ============================================================ */
+function renderLedger(){
+  const el=document.getElementById("ledger");
+  if(!txns.length){el.innerHTML=`<div class="empty"><p>No trades recorded</p><span class="muted">Record your first trade above.</span></div>`;return}
+  const sorted=[...txns].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:b.id-a.id);
+  el.innerHTML=`<table class="ledger">
+    <thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>FX at trade</th><th>Value</th><th></th></tr></thead>
+    <tbody>${sorted.map(x=>{
+      const v=x.qty*x.price*x.fx;
+      return `<tr>
+        <td>${prettyDate(x.date)}</td>
+        <td><span class="tkr">${x.t}</span></td>
+        <td><span class="side ${x.side==="sell"?"sell":""}">${x.side}</span></td>
+        <td>${x.qty.toLocaleString("nl-NL",{maximumFractionDigits:6})}</td>
+        <td>${native(x.price,x.ccy)}</td>
+        <td>${x.ccy==="EUR"?'<span class="ccy">—</span>':x.fx.toFixed(4)}</td>
+        <td>${x.side==="sell"?"+":"−"}${eur(v,0)}</td>
+        <td><button class="del" data-x="${x.id}" aria-label="Delete trade">×</button></td></tr>`}).join("")}</tbody></table>`;
+  el.querySelectorAll(".del").forEach(b=>b.onclick=()=>{txns=txns.filter(t=>t.id!==+b.dataset.x);saveTxns();renderAll()});
+}
+
+function renderPositions(){
+  const wrap=document.getElementById("holdings");
+  const{rows}=ledger();
+  if(!rows.length){
+    wrap.innerHTML=`<div class="empty"><p>No open positions</p><span class="muted">Open the Trades tab and record your first one. The risk page fills itself in.</span></div>`;
+    document.getElementById("allocwrap").hidden=true;
+    document.getElementById("consensus").innerHTML="";
+    return;
+  }
+  document.getElementById("allocwrap").hidden=false;
+  const tot=rows.reduce((a,r)=>a+r.val,0),totb=rows.reduce((a,r)=>a+r.book,0);
+  wrap.innerHTML=`<table>
+    <thead><tr><th>Position</th><th>Opt.</th><th>Qty</th><th>Price</th><th>Avg cost</th><th>Today</th><th>Value</th><th>Unrealised</th><th>Realised</th><th></th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><span class="tkr">${r.t}</span><span class="tkrsub">${r.name} · ${r.n} trade${r.n>1?"s":""} from ${prettyDate(r.first)}</span></td>
+      <td><input class="optbox" type="checkbox" data-o="${r.t}" ${r.opt?"checked":""} aria-label="Include ${r.t} in optimiser"></td>
+      <td>${r.qty.toLocaleString("nl-NL",{maximumFractionDigits:6})}</td>
+      <td>${native(r.pxN,r.ccy)}<br><span class="ccy">${r.ccy}</span></td>
+      <td>${native(r.avgN,r.ccy)}<br><span class="ccy">${r.ccy==="EUR"?eur(r.avgE):"@ "+r.avgFx.toFixed(4)+" avg"}</span></td>
+      <td class="${cls(r.day)}">${arw(r.day)}${pct(r.day)}</td>
+      <td>${r.hasFeed?eur(r.val,0):'<span class="ccy" title="No price feed for this ticker yet">no feed</span>'}</td>
+      <td class="${cls(r.pnl)}">${arw(r.pnl)}${signed(r.pnl)}<br><span style="font-size:12px">${pct(r.ret,1)}</span></td>
+      <td class="${Math.abs(r.realised)<0.005?"":cls(r.realised)}">${Math.abs(r.realised)<0.005?'<span class="ccy">—</span>':signed(r.realised)}</td>
+      <td></td></tr>`).join("")}</tbody>
+    <tfoot><tr><td>Total</td><td></td><td></td><td></td><td></td><td></td><td>${eur(tot,0)}</td>
+      <td class="${cls(tot-totb)}">${arw(tot-totb)}${signed(tot-totb)}</td><td></td><td></td></tr></tfoot></table>`;
+  const fxe=fxEffect(rows);
+  wrap.insertAdjacentHTML("beforeend",
+    `<p class="fxline">Of that P&amp;L, <b style="color:${fxe>=0?"var(--gain)":"var(--loss)"}">${signed(fxe)}</b> is currency movement rather than company performance — measured against the rate on each individual trade date, not a single blended one. Today's EUR/USD ${FX.USD.toFixed(4)}.<br>
+    Average cost is derived from the log on an average-cost basis. Delete a trade and every number above recomputes.</p>`);
+  wrap.querySelectorAll(".optbox").forEach(b=>b.onchange=()=>{optIn[b.dataset.o]=b.checked;saveOpt();renderAll()});
+
+  document.getElementById("allocbar").innerHTML=rows.map((r,i)=>
+    `<div style="width:${r.val/tot*100}%;background:${SWATCH[i%SWATCH.length]}" title="${r.t}"></div>`).join("");
+  document.getElementById("alloclegend").innerHTML=rows.map((r,i)=>
+    `<div><span class="swatch" style="background:${SWATCH[i%SWATCH.length]}"></span>${r.t} · ${(r.val/tot*100).toFixed(1)}%</div>`).join("");
+
+  renderConsensus(rows);
+}
+
+const RATE_SHADE=["#F2F2F2","#B8B8B8","#7A7A7A","#4A4A4A","#2E2E2E"];
+const RATING_WORDS=["Strong buy","Buy","Hold","Sell","Strong sell"];
+function renderConsensus(rows){
+  document.getElementById("consensus").innerHTML=rows.map(r=>{
+    const c=consensusOf(r.t);
+    if(c.cov!=="yes"){
+      const why=c.why||(c.cov==="paid"
+        ?"No free-tier coverage for this listing. Consensus for Euronext-primary names sits behind a paid data tier — a licensing boundary, not a lookup that can be worked around."
+        :"Not fetched yet.");
+      return `<div class="conscard none">
+        <div class="conshead"><span class="tk">${r.t}</span><span class="nn">${c.cov==="paid"?"paid tier":c.cov==="na"?"not applicable":"no data"}</span></div>
+        <p class="conswhy">${why}</p></div>`;
+    }
+    const tot=(c.dist||[]).reduce((a,b)=>a+b,0);
+    const ccy=c.ccy||r.ccy;
+    const hasTarget=c.mid>0&&r.pxN>0;
+    const upside=hasTarget?(c.mid-r.pxN)/r.pxN:null;
+    const hasSpread=c.lo>0&&c.hi>0&&c.mid>0;
+    const spread=hasSpread?(c.hi-c.lo)/c.mid:null;
+    const rev=c.e3;
+    const rows_=[];
+    if(tot)rows_.push(`<div class="consrow" style="border:none;padding-top:0"><span>${RATING_WORDS[c.dist.indexOf(Math.max(...c.dist))]}</span><b>${c.dist[0]+c.dist[1]}/${tot} positive</b></div>`);
+    if(r.pxN>0)rows_.push(`<div class="consrow"><span>Price today</span><b>${native(r.pxN,ccy,0)}</b></div>`);
+    if(hasTarget)rows_.push(`<div class="consrow"><span>Mean target</span><b>${native(c.mid,ccy,0)} <span class="${cls(upside)}">${arw(upside)}${pct(upside,0)}</span></b></div>`);
+    rows_.push(hasSpread
+      ?`<div class="consrow"><span>Target range</span><b>${native(c.lo,ccy,0)}–${native(c.hi,ccy,0)} · ${(spread*100).toFixed(0)}%</b></div>`
+      :`<div class="consrow"><span>Target range</span><b style="color:var(--dimmer)">paid tier</b></div>`);
+    if(c.epsLast)rows_.push(`<div class="consrow"><span>EPS last reported</span><b>${native(c.epsLast,ccy)}</b></div>`);
+    rows_.push(rev===null||rev===undefined
+      ?`<div class="consrow"><span>Target revision 3m</span><b style="color:var(--dimmer)">building — ${c.history_days||0}d of ${90}</b></div>`
+      :`<div class="consrow"><span>Target revision 3m</span><b class="${cls(rev)}">${arw(rev)}${pp(rev)}</b></div>`);
+    return `<div class="conscard">
+      <div class="conshead"><span class="tk">${r.t}</span><span class="nn">${tot?tot+" analysts":"coverage unknown"}</span></div>
+      ${tot?`<div class="ratebar">${c.dist.map((n,i)=>n?`<div style="width:${n/tot*100}%;background:${RATE_SHADE[i]}" title="${RATING_WORDS[i]}: ${n}"></div>`:"").join("")}</div>`:""}
+      ${rows_.join("")}
+      ${hasSpread&&spread>=0.5?`<p class="consnote">Wide spread — the mean is an average of incompatible views.</p>`:""}
+      ${rev<=-1.5?`<p class="consnote">Targets falling while the rating stays positive.</p>`:""}
+    </div>`;
+  }).join("")||`<p class="muted" style="margin:0">Nothing held yet.</p>`;
+}
+
+/* ============================================================
+   8. Risk
+   ============================================================ */
+const PERIODS=[["1M",21],["3M",63],["6M",126],["YTD",148],["1Y",252],["3Y",756]];
+let period=252;
+const METRICS=[
+  {k:"Volatility",n:"Annualised σ",f:c=>(c.vol*100).toFixed(1)+"%"},
+  {k:"Sharpe",n:"rf 2.5%",f:c=>((c.ann-c.rf)/c.vol).toFixed(2)},
+  {k:"Sortino",n:"Downside only",f:c=>c.sortino.toFixed(2)},
+  {k:"Beta",n:"vs MSCI World",f:c=>c.beta.toFixed(2)},
+  {k:"AI loading",n:"Market-neutral factor",f:c=>c.aiBeta.toFixed(2)},
+  {k:"Max drawdown",n:"Peak to trough",f:c=>(c.dd*100).toFixed(1)+"%",cls:"down"}
+];
+function aiLoading(rows){const ps=seriesOf(rows);return cov(ps,aiX)/cov(aiX,aiX)}
+
+function spark(vals,w=90,h=24){
+  const mn=Math.min(...vals),mx=Math.max(...vals),rg=(mx-mn)||1;
+  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${(h-((v-mn)/rg)*(h-2)-1).toFixed(1)}`).join(" ");
+  const up=vals[vals.length-1]>=vals[0];
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="${up?"var(--gain)":"var(--loss)"}" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function renderCycle(){
+  const el=document.getElementById("cycle");
+  if(!CYCLE.length){
+    el.className="";
+    el.innerHTML=`<div class="empty"><p>No cycle indicators wired up yet</p>
+      <span class="muted">TSMC monthly revenue, Korean chip exports and SEMI book-to-bill are published
+      as press releases and spreadsheets rather than as data feeds, so none of them can be fetched
+      reliably yet. Rather than show numbers I cannot keep current, this stays empty until there is a
+      source worth trusting. Drop a <span class="mono">data/cycle.json</span> in and it fills itself.</span></div>`;
+    return;
+  }
+  el.className="cyc";
+  el.innerHTML=CYCLE.map(c=>`
+    <div class="cycitem">
+      <div class="k">${c.k}</div>
+      <div class="v">${c.v}</div>
+      <div class="ch ${cls(c.yoy||0)}">${arw(c.yoy||0)}${pp(c.yoy||0)} yoy${c.mom!==null&&c.mom!==undefined?` <span style="color:var(--dimmer)">· ${pp(c.mom)} mom</span>`:""}</div>
+      ${Array.isArray(c.sp)&&c.sp.length>1?spark(c.sp):""}
+      <div class="s">${c.s}</div>
+    </div>`).join("");
+}
+
+function renderAI(rows,total){
+  const b=aiLoading(rows);
+  const look=rows.reduce((a,r)=>a+(r.val/total)*aiRevOf(r.t),0);
+  document.getElementById("aibeta").textContent=b.toFixed(2);
+  const w=Math.max(0,Math.min(1,b))*100;
+  const out=b>=0.45;
+  document.getElementById("aigauge").innerHTML=
+    `<div class="band" style="left:0%;width:45%"></div>
+     <div class="fillb" style="width:${w}%"></div>
+     <div class="mark ${out?"out":""}" style="left:calc(${w}% - 1px)"></div>`;
+  document.getElementById("ainote").innerHTML=
+    `Regressed against an <b>AI basket with the market's influence removed</b>, not the basket itself — the raw basket would mostly re-measure market beta, since AI-linked names now dominate the index. Subtracting the market outright is not enough either: a basket that runs at 1.3× the market still leaves 0.3 of market inside it, which leaks into every loading. A reading of ${b.toFixed(2)} means a 1% AI-specific move shifts this portfolio about ${(b*100).toFixed(0)} basis points, over and above whatever the market does. Shaded zone is the band you set as normal.`;
+  document.getElementById("ailook").textContent=(look*100).toFixed(0)+"%";
+  const sorted=[...rows].sort((a,b2)=>aiRevOf(b2.t)-aiRevOf(a.t));
+  document.getElementById("aibar").innerHTML=sorted.map((r,i)=>{
+    const share=(r.val/total)*aiRevOf(r.t);
+    return share>0.002?`<div style="width:${share/look*100}%;background:${SWATCH[i%SWATCH.length]}" title="${r.t} · ${(share*100).toFixed(1)}pp"></div>`:"";
+  }).join("");
+  const top=sorted.filter(r=>aiRevOf(r.t)>0).slice(0,3)
+    .map(r=>`${r.t} ${((r.val/total)*aiRevOf(r.t)*100).toFixed(0)}pp`).join(" · ");
+  document.getElementById("ailooknote").innerHTML=
+    `Your own estimate of each holding's AI-linked revenue share, weighted by position size and editable in the settings file rather than buried in code. Largest contributors: <b>${top||"none"}</b>. Cruder than the regression, far easier to argue with — and the two disagreeing tells you something on its own.`;
+
+  const etf=rows.find(r=>aiRevOf(r.t)>0.15&&r.name.toLowerCase().includes("msci"));
+  const singles=rows.filter(r=>aiRevOf(r.t)>=0.3).map(r=>r.t);
+  document.getElementById("aioverlap").innerHTML=etf&&singles.length
+    ?`<b>The overlap you cannot see in the position count.</b> MSCI World is roughly a quarter AI-linked mega caps, so ${etf.t} already carries about ${((etf.val/total)*aiRevOf(etf.t)*100).toFixed(0)} points of the exposure above before ${singles.join(" and ")} are counted. Holding an index fund alongside single names in the same theme is more concentrated than ${rows.length} positions suggests — which is exactly the unintended concentration the frontier below exists to reveal.`
+    :`<b>Look-through matters more than the position count.</b> Index funds carry theme exposure of their own; count it before concluding a portfolio is diversified across themes.`;
+}
+
+function renderRisk(){
+  document.getElementById("periods").innerHTML=PERIODS.map(([l,n])=>
+    `<button data-n="${n}" aria-pressed="${period===n}">${l}</button>`).join("");
+  document.querySelectorAll("#periods button").forEach(b=>b.onclick=()=>{period=+b.dataset.n;renderRisk()});
+  const all=rowsOf();
+  const rows=all.filter(r=>r.hasFeed);      /* no feed, no maths — see the note under the frontier */
+  const noFeed=all.filter(r=>!r.hasFeed);
+  renderCycle();
+  if(!rows.length){
+    document.getElementById("retmetrics").innerHTML=`<div class="metric"><div class="k">No data</div><div class="n">Record a trade first.</div></div>`;
+    ["riskmetrics","cormatrix","frontier"].forEach(i=>document.getElementById(i).innerHTML="");
+    document.getElementById("frontier-note").textContent="";document.getElementById("excl").textContent="";
+    document.getElementById("aibeta").textContent="—";document.getElementById("ailook").textContent="—";
+    document.getElementById("ainote").textContent="";document.getElementById("ailooknote").textContent="";
+    document.getElementById("aigauge").innerHTML="";document.getElementById("aibar").innerHTML="";
+    document.getElementById("aioverlap").innerHTML="";
+    return;
+  }
+  const total=rows.reduce((a,r)=>a+r.val,0);
+  const ps=seriesOf(rows),pr=cumret(ps,period),br=cumret(mkt,period);
+  const mw=moneyWeighted(rows);
+  document.getElementById("retmetrics").innerHTML=`
+    <div class="metric"><div class="k">Portfolio</div><div class="v ${cls(pr)}">${arw(pr)}${pct(pr,1)}</div><div class="n">Time-weighted</div></div>
+    <div class="metric"><div class="k">MSCI World (EUR)</div><div class="v">${pct(br,1)}</div><div class="n">Benchmark</div></div>
+    <div class="metric"><div class="k">Excess</div><div class="v ${cls(pr-br)}">${arw(pr-br)}${pct(pr-br,1)}</div><div class="n">vs benchmark</div></div>
+    <div class="metric"><div class="k">Money-weighted</div><div class="v ${mw===null?"":cls(mw)}">${mw===null?"—":arw(mw)+pct(mw,1)}</div><div class="n">Annualised IRR · needs trade dates</div></div>`;
+  const vol=sd(ps)*Math.sqrt(252),ann=mean(ps)*252,rf=0.025,down=ps.filter(x=>x<0);
+  const ctx={vol,ann,rf,beta:cov(ps,mkt)/cov(mkt,mkt),dd:maxDD(ps.slice(-period)),
+    aiBeta:aiLoading(rows),
+    sortino:(ann-rf)/(Math.sqrt(mean(down.map(x=>x*x)))*Math.sqrt(252))};
+  document.getElementById("riskmetrics").innerHTML=METRICS.map(m=>
+    `<div class="metric"><div class="k">${m.k}</div><div class="v ${m.cls||""}">${m.f(ctx)}</div><div class="n">${m.n}</div></div>`).join("");
+
+  renderAI(rows,total);
+
+  const ts=rows.map(r=>r.t),ss=ts.map(series);
+  document.getElementById("cormatrix").innerHTML=
+    `<tr><th></th>${ts.map(t=>`<th>${t}</th>`).join("")}</tr>`+
+    ts.map((t,i)=>`<tr><td>${t}</td>${ts.map((_,j)=>{
+      const c=i===j?1:corr(ss[i],ss[j]),a=Math.max(0,Math.min(1,c))*0.9;
+      return `<td style="background:rgba(255,255,255,${a.toFixed(3)});color:${a>0.5?"#000":"#F2F2F2"}">${c.toFixed(2)}</td>`;
+    }).join("")}</tr>`).join("");
+  const exc=rows.filter(r=>!r.opt);
+  const bits=[];
+  if(exc.length)bits.push(`Excluded: <b style="color:var(--text)">${exc.map(r=>r.t).join(", ")}</b> · anything with idiosyncratic vol above 2.5% a day is excluded by default, whatever it is`);
+  if(noFeed.length)bits.push(`No price feed yet, so left out of every calculation on this page: <b style="color:var(--flag)">${noFeed.map(r=>r.t).join(", ")}</b>`);
+  document.getElementById("excl").innerHTML=bits.join("<br>")||`All holdings included.`;
+  renderFrontier(rows.filter(r=>r.opt));
+}
+
+function renderFrontier(list){
+  const el=document.getElementById("frontier"),note=document.getElementById("frontier-note");
+  if(list.length<2){
+    el.innerHTML=`<div class="empty" style="padding:34px"><p>Need at least two holdings</p><span class="muted">Tick more rows into the optimiser.</span></div>`;
+    note.textContent="";return;
+  }
+  const ts=list.map(r=>r.t),ss=ts.map(series),n=ts.length;
+  const mu=ss.map(s=>mean(s)*252),S=ss.map(a=>ss.map(b=>cov(a,b)*252));
+  const pv=w=>{let v=0;for(let i=0;i<n;i++)for(let j=0;j<n;j++)v+=w[i]*w[j]*S[i][j];return Math.sqrt(Math.max(v,1e-12))};
+  const pe=w=>w.reduce((a,x,i)=>a+x*mu[i],0),rf=0.025;
+  const r=rng(424242),pts=[];let best=null;
+  for(let k=0;k<4000;k++){
+    let w=[],s=0;
+    for(let i=0;i<n;i++){const x=-Math.log(1-r());w.push(x);s+=x}
+    w=w.map(x=>x/s);
+    const v=pv(w),e=pe(w),sh=(e-rf)/v;
+    pts.push({v,e,sh});
+    if(!best||sh>best.sh)best={v,e,sh,w};
+  }
+  const cur=pfWeights(list),cv=pv(cur),ce=pe(cur),csh=(ce-rf)/cv;
+  const W=460,H=320,P={l:52,r:16,t:16,b:44};
+  const xs=pts.map(p=>p.v).concat([cv]),ys=pts.map(p=>p.e).concat([ce]);
+  const x0=Math.min(...xs)*0.9,x1=Math.max(...xs)*1.04,y0=Math.min(...ys)*0.92,y1=Math.max(...ys)*1.06;
+  const X=v=>P.l+(v-x0)/(x1-x0)*(W-P.l-P.r),Y=e=>H-P.b-(e-y0)/(y1-y0)*(H-P.t-P.b);
+  let g="";
+  for(let i=0;i<=4;i++){
+    const yv=y0+(y1-y0)*i/4,xv=x0+(x1-x0)*i/4;
+    g+=`<line class="ax" x1="${P.l}" y1="${Y(yv)}" x2="${W-P.r}" y2="${Y(yv)}" opacity=".7"/>`
+      +`<text class="axlab" x="${P.l-8}" y="${Y(yv)+3}" text-anchor="end">${(yv*100).toFixed(0)}%</text>`
+      +`<text class="axlab" x="${X(xv)}" y="${H-P.b+15}" text-anchor="middle">${(xv*100).toFixed(0)}%</text>`;
+  }
+  const cloud=pts.map(p=>{
+    const t=Math.max(0,Math.min(1,(p.sh-0.2)/1.1)),v=Math.round(70+170*t);
+    return `<circle cx="${X(p.v).toFixed(1)}" cy="${Y(p.e).toFixed(1)}" r="1.9" fill="rgb(${v},${v},${v})" opacity="${(0.3+0.5*t).toFixed(2)}"/>`;
+  }).join("");
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Efficient frontier scatter plot">
+    ${g}<line class="ax" x1="${P.l}" y1="${H-P.b}" x2="${W-P.r}" y2="${H-P.b}"/>
+    <line class="ax" x1="${P.l}" y1="${P.t}" x2="${P.l}" y2="${H-P.b}"/>${cloud}
+    <circle cx="${X(best.v)}" cy="${Y(best.e)}" r="6.5" fill="none" stroke="#D8A93A" stroke-width="2"/>
+    <circle cx="${X(cv)}" cy="${Y(ce)}" r="6.5" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text class="axtitle" x="${W/2}" y="${H-6}" text-anchor="middle">Volatility →</text>
+    <text class="axtitle" x="14" y="${(H-P.b)/2}" text-anchor="middle" transform="rotate(-90,14,${(H-P.b)/2})">Return →</text>
+    <g font-family="IBM Plex Mono" font-size="10">
+      <circle cx="${W-146}" cy="${P.t+8}" r="5" fill="#FFFFFF" stroke="#000" stroke-width="1.5"/>
+      <text x="${W-135}" y="${P.t+11}" fill="#F2F2F2">You · Sharpe ${csh.toFixed(2)}</text>
+      <circle cx="${W-146}" cy="${P.t+26}" r="5" fill="none" stroke="#D8A93A" stroke-width="2"/>
+      <text x="${W-135}" y="${P.t+29}" fill="#F2F2F2">Max Sharpe ${best.sh.toFixed(2)}</text>
+    </g></svg>`;
+  const sh=ts.map((t,i)=>({t,d:best.w[i]-cur[i]})).sort((a,b)=>b.d-a.d);
+  note.innerHTML=`4,000 simulated long-only mixes of the ticked holdings. Against the highest-Sharpe mix you are heaviest in <b>${sh[sh.length-1].t}</b> (${(Math.abs(sh[sh.length-1].d)*100).toFixed(0)} points over) and lightest in <b>${sh[0].t}</b> (${(sh[0].d*100).toFixed(0)} points under).`;
+}
+
+/* ============================================================
+   9. Entry form
+   ============================================================ */
+const $=id=>document.getElementById(id);
+
+function updateFxHint(){
+  const price=parseFloat($("f-price").value),qty=parseFloat($("f-qty").value);
+  const ccy=FX[$("f-ccy").value]?$("f-ccy").value:"EUR";
+  const date=$("f-date").value||LAST;
+  const el=$("fxhint");
+  if(!NDAYS){el.innerHTML=`<span class="warnline">No exchange-rate history yet. Run the refresh workflow once and this fills in.</span>`;return}
+  const clamped=date<FIRST?FIRST:date>LAST?LAST:date;
+  const outOfRange=date!==clamped;
+  const rate=fxOn(ccy,clamped),spot=FX[ccy]||1;
+  if(ccy==="EUR"){
+    el.innerHTML=`Bought in euros — no conversion. For any other currency the rate is taken from the <b>trade date you enter</b> and stored with the trade, so the currency part of your return stays separate from the company part.`
+      +(outOfRange?`<br><span class="warnline">That date is before the history we hold, so the earliest available rate would be used.</span>`:"");
+    return;
+  }
+  const per=price>0?price*rate:null,tot=per&&qty>0?per*qty:null;
+  const drift=rate?(spot-rate)/rate:0;
+  el.innerHTML=
+    `ECB rate on <b>${prettyDate(clamped)}</b>: ${rate.toFixed(4)} · today ${spot.toFixed(4)} <span class="${cls(drift)}">${arw(drift)}${pct(drift,1)}</span>`
+    +(per?`<br>${native(price,ccy)} converts to <b>${eur(per)}</b>${tot?` · ${qty} × = <b>${eur(tot,0)}</b>`:""}`:"")
+    +`<br><span style="color:var(--dimmer)">Backdate the trade and the historical rate is used, not today's.</span>`
+    +(outOfRange?`<br><span class="warnline">That date is before the history we hold, so the earliest available rate is being used.</span>`:"");
+}
+
+/* ============================================================
+   10. Boot
+   ============================================================ */
+function renderAll(){renderHeader();renderNews();renderAlerts();renderLedger();renderPositions();renderRisk()}
+
+function wireTabs(sel){
+  const tabs=[...document.querySelectorAll(sel)];
+  tabs.forEach(tab=>tab.onclick=()=>tabs.forEach(t=>{
+    const on=t===tab;t.setAttribute("aria-selected",on);
+    $(t.getAttribute("aria-controls")).hidden=!on;
+  }));
+}
+
+function renderStatus(){
+  const el=$("statusbar");
+  const bits=[],bad=[];
+  Object.entries(STATUS||{}).forEach(([k,v])=>{if(!v.ok)bad.push(k)});
+  const when=PRICES.updated||NEWSDATA.updated||FXDATA.updated;
+  bits.push(when?`Updated ${relTime(when)}`:"No data fetched yet");
+  if(!NDAYS)bits.push("waiting for the first run");
+  else bits.push(`${NDAYS} days of history`);
+  const catN=Object.keys(CATALOG).length;
+  if(catN)bits.push(`${catN} instruments available`);
+  if(bad.length)bits.push(`<b>${bad.length} source${bad.length>1?"s":""} failing: ${bad.join(", ")}</b>`);
+  const stale=(PRICES.failed||[]);
+  if(stale.length)bits.push(`<b>stale prices: ${stale.join(", ")}</b>`);
+  el.innerHTML=bits.join(" · ");
+  el.className="demo"+(bad.length||stale.length?" bad":"");
+}
+
+function fillForm(){
+  $("f-ccy").innerHTML=CURRENCIES.map(c=>`<option ${c==="EUR"?"selected":""}>${c}</option>`).join("");
+  const cat=Object.keys(CATALOG).sort();
+  $("tickers").innerHTML=cat.map(t=>`<option value="${t}">${CATALOG[t].name}</option>`).join("");
+  $("f-tkr").placeholder=cat.length?`any of ${cat.length}`:"MSFT";
+  if(NDAYS){$("f-date").min=FIRST;$("f-date").max=LAST;$("f-date").value=LAST}
+}
+
+async function boot(){
+  let idx;
+  [CFG,idx,FXDATA,NEWSDATA,CONSDATA,SRV,STATUS,CYCLEDATA]=await Promise.all([
+    loadJSON("settings.json",{instruments:[],news_sources:[]}),
+    loadJSON("data/index.json",{instruments:{}}),
+    loadJSON("data/fx.json",{euros_per_unit:{EUR:{}}}),
+    loadJSON("data/news.json",{sources:[],stories:[]}),
+    loadJSON("data/consensus.json",{instruments:{}}),
+    loadJSON("data/alerts.json",{alerts:[]}),
+    loadJSON("data/status.json",{}),
+    loadJSON("data/cycle.json",[])
+  ]);
+  PXINDEX=idx;
+  PRICES={updated:idx.updated,series:{},failed:idx.failed||[]};
+  CATALOG={};
+  Object.entries(idx.instruments||{}).forEach(([t,m])=>{
+    CATALOG[t.toUpperCase()]={...m,file:"data/"+m.file};
+  });
+  await loadPrices(neededTickers());
+  buildAll();
+  fillForm();
+  renderStatus();
+  $("stamp").textContent=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+  wireTabs('nav[role="tablist"] > [role="tab"]');
+  wireTabs('.subnav > [role="tab"]');
+  document.querySelectorAll("#f-side button").forEach(b=>b.onclick=()=>{
+    side=b.dataset.side;
+    document.querySelectorAll("#f-side button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  });
+  $("f-tkr").addEventListener("input",()=>{
+    const t=$("f-tkr").value.trim().toUpperCase();
+    if(INSTR[t]){$("f-ccy").value=INSTR[t].ccy;updateFxHint()}
+  });
+  ["f-price","f-qty"].forEach(i=>$(i).addEventListener("input",updateFxHint));
+  $("f-ccy").addEventListener("change",updateFxHint);
+  $("f-date").addEventListener("change",updateFxHint);
+  $("f-add").onclick=addTrade;
+  $("f-export").onclick=exportTxns;
+  updateFxHint();
+  renderAll();
+}
+
+function addTrade(){
+  const t=$("f-tkr").value.trim().toUpperCase();
+  const qty=parseFloat($("f-qty").value),price=parseFloat($("f-price").value);
+  const ccy=$("f-ccy").value;
+  let date=$("f-date").value||LAST;
+  if(!t||!(qty>0)||!(price>0)){alert("Enter a ticker, a quantity above zero, and the price you paid.");return}
+  if(!NDAYS){alert("No price history has been fetched yet. Run the refresh workflow first.");return}
+  if(!CATALOG[t]&&!confirm(`${t} has no price feed yet.\n\nAdd it to "watchlist" in settings.json and the fetcher will find the exchange itself, usually within a day. Record the trade anyway?`))return;
+  if(date<FIRST)date=FIRST; if(date>LAST)date=LAST;
+  if(side==="sell"){
+    const held=rowsOf().find(r=>r.t===t);
+    if(!held||held.qty+1e-9<qty){alert(`You hold ${held?held.qty:0} of ${t}. Reduce the quantity or record the purchase first.`);return}
+  }
+  txns.push({id:nextId++,t,side,date,qty,price,ccy,fx:fxOn(ccy,date)});
+  saveTxns();
+  ["f-tkr","f-qty","f-price"].forEach(i=>$(i).value="");
+  updateFxHint();
+  if(CATALOG[t]&&!PRICES.series[t]){
+    loadPrices([t]).then(()=>{buildAll();renderAll()});   /* first buy of a new name */
+  }
+  renderAll();
+}
+
+function exportTxns(){
+  const blob=new Blob([JSON.stringify(txns,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`transactions-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();URL.revokeObjectURL(a.href);
+}
+
+boot();
+
+</script>
