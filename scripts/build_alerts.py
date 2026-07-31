@@ -123,6 +123,9 @@ def rule_spread(ctx):
     return out
 
 
+FORM_LABEL = {"4": "a Form 4", "8-K": "an 8-K", "SC 13D": "a 13D", "SC 13G": "a 13G"}
+
+
 def rule_filings(ctx):
     out = []
     cutoff = (dt.date.today() - dt.timedelta(days=2)).isoformat()
@@ -131,7 +134,7 @@ def rule_filings(ctx):
             continue
         out.append({"id": f"filing:{f['ticker']}:{f['filed']}:{f['form']}", "kind": "Filing",
                     "mail": f["form"] == "8-K", "tone": "act", "when": f["filed"],
-                    "title": f"{f['ticker']} filed a {f['form']}",
+                    "title": f"{f['ticker']} filed {FORM_LABEL.get(f['form'], 'a ' + f['form'])}",
                     "body": f["why"], "url": f.get("url", "")})
     return out
 
