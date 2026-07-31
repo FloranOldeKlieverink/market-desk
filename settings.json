@@ -17,36 +17,6 @@
   ],
   "instruments": [
     {
-      "ticker": "ASML",
-      "name": "ASML Holding",
-      "currency": "EUR",
-      "stooq": "asml.nl",
-      "alphavantage": "ASML",
-      "sec_cik": "0000937966",
-      "ai_revenue_share": 0.55,
-      "include_in_optimiser": true
-    },
-    {
-      "ticker": "ADYEN",
-      "name": "Adyen",
-      "currency": "EUR",
-      "stooq": "adyen.nl",
-      "alphavantage": "ADYEY",
-      "sec_cik": null,
-      "ai_revenue_share": 0.03,
-      "include_in_optimiser": true
-    },
-    {
-      "ticker": "IWDA",
-      "name": "iShares Core MSCI World",
-      "currency": "EUR",
-      "stooq": "iwda.nl",
-      "alphavantage": null,
-      "sec_cik": null,
-      "ai_revenue_share": 0.22,
-      "include_in_optimiser": true
-    },
-    {
       "ticker": "MSFT",
       "name": "Microsoft",
       "currency": "USD",
@@ -57,24 +27,64 @@
       "include_in_optimiser": true
     },
     {
-      "ticker": "AAPL",
-      "name": "Apple",
+      "ticker": "V",
+      "name": "Visa",
       "currency": "USD",
-      "stooq": "aapl.us",
-      "alphavantage": "AAPL",
-      "sec_cik": "0000320193",
-      "ai_revenue_share": 0.12,
+      "stooq": "v.us",
+      "alphavantage": "V",
+      "sec_cik": "0001403161",
+      "ai_revenue_share": 0.05,
       "include_in_optimiser": true
     },
     {
-      "ticker": "BTC",
-      "name": "Bitcoin",
+      "ticker": "SOFI",
+      "name": "SoFi Technologies",
       "currency": "USD",
-      "stooq": "btcusd",
+      "stooq": "sofi.us",
+      "alphavantage": "SOFI",
+      "sec_cik": "0001818874",
+      "ai_revenue_share": 0.05,
+      "include_in_optimiser": true
+    },
+    {
+      "ticker": "CSPX",
+      "name": "iShares Core S&P 500 UCITS ETF USD Acc",
+      "currency": "USD",
+      "stooq": "cspx.nl",
       "alphavantage": null,
       "sec_cik": null,
-      "ai_revenue_share": 0.0,
-      "include_in_optimiser": false
+      "ai_revenue_share": 0.3,
+      "include_in_optimiser": true
+    },
+    {
+      "ticker": "VWCE",
+      "name": "Vanguard FTSE All-World UCITS ETF Acc",
+      "currency": "USD",
+      "stooq": "vwce.nl",
+      "alphavantage": null,
+      "sec_cik": null,
+      "ai_revenue_share": 0.22,
+      "include_in_optimiser": true
+    },
+    {
+      "ticker": "DEMU",
+      "name": "iShares Core MSCI EMU UCITS ETF Acc",
+      "currency": "EUR",
+      "stooq": "demu.nl",
+      "alphavantage": null,
+      "sec_cik": null,
+      "ai_revenue_share": 0.1,
+      "include_in_optimiser": true
+    },
+    {
+      "ticker": "ASML",
+      "name": "ASML Holding",
+      "currency": "EUR",
+      "stooq": "asml.nl",
+      "alphavantage": "ASML",
+      "sec_cik": "0000937966",
+      "ai_revenue_share": 0.55,
+      "include_in_optimiser": true
     }
   ],
   "_benchmark": "What your portfolio is measured against. Must also appear in instruments, or be fetchable on its own.",
@@ -225,12 +235,14 @@
     "BRK-B": "brk-b.us|USD|Berkshire Hathaway B",
     "BTC": "btcusd|USD|Bitcoin",
     "CAT": "cat.us|USD|Caterpillar",
+    "CEMU": "cemu.nl|EUR|iShares Core MSCI EMU UCITS ETF Acc",
     "COST": "cost.us|USD|Costco",
     "CRBN": "crbn.nl|EUR|Corbion",
     "CRM": "crm.us|USD|Salesforce",
-    "CSPX": "cspx.nl|EUR|iShares Core S&P 500 Acc",
+    "CSPX": "cspx.nl|USD|iShares Core S&P 500 UCITS ETF USD Acc",
     "CVX": "cvx.us|USD|Chevron",
     "DBK": "dbk.de|EUR|Deutsche Bank",
+    "DEMU": "demu.nl|EUR|iShares Core MSCI EMU UCITS ETF Acc",
     "DIS": "dis.us|USD|Disney",
     "DSFIR": "dsfir.nl|EUR|DSM-Firmenich",
     "DTE": "dte.de|EUR|Deutsche Telekom",
@@ -247,6 +259,7 @@
     "HEIJM": "heijm.nl|EUR|Heijmans",
     "HSBA": "hsba.uk|GBP|HSBC",
     "IBE": "ibe.es|EUR|Iberdrola",
+    "IEMU": "iemu.nl|EUR|iShares Core MSCI EMU UCITS ETF Acc",
     "IEUR": "ieur.nl|EUR|iShares Core MSCI Europe",
     "IFX": "ifx.de|EUR|Infineon",
     "IMCD": "imcd.nl|EUR|IMCD",
@@ -310,6 +323,7 @@
     "SHOP": "shop.us|USD|Shopify",
     "SIE": "sie.de|EUR|Siemens",
     "SNOW": "snow.us|USD|Snowflake",
+    "SOFI": "sofi.us|USD|SoFi Technologies",
     "SOL": "solusd|USD|Solana",
     "SQ": "xyz.us|USD|Block",
     "SU": "su.fr|EUR|Schneider Electric",
@@ -330,7 +344,7 @@
     "VOW3": "vow3.de|EUR|Volkswagen",
     "VPK": "vpk.nl|EUR|Vopak",
     "VUSA": "vusa.nl|EUR|Vanguard S&P 500",
-    "VWCE": "vwce.de|EUR|Vanguard FTSE All-World Acc",
+    "VWCE": "vwce.nl|USD|Vanguard FTSE All-World UCITS ETF Acc",
     "VWRL": "vwrl.nl|EUR|Vanguard FTSE All-World",
     "WKL": "wkl.nl|EUR|Wolters Kluwer",
     "WMT": "wmt.us|USD|Walmart",
@@ -340,7 +354,10 @@
   "_watchlist": [
     "Extra tickers to keep charts for even though you do not own them."
   ],
-  "watchlist": [],
+  "watchlist": [
+    "CEMU",
+    "IEMU"
+  ],
   "_auto_resolve": [
     "Exchange suffixes tried, in order, when a ticker is not already known.",
     "Amsterdam first because that is where most of your buying happens."
