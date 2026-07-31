@@ -34,7 +34,7 @@ def main():
             return f"{len(s)} days, latest {max(s)}"
         results.append(check(f"ECB {ccy}/EUR", f))
 
-    print("\nPrices — the tracked instruments")
+    print("\nPrices — trying each provider separately so we can see who answers")
     import providers
     av = secret("ALPHAVANTAGE_KEY")
     uni = providers.parse_universe(cfg)
@@ -44,19 +44,45 @@ def main():
         merged.update({k: v for k, v in i.items() if v is not None})
         targets.append(merged)
     targets.append(cfg["benchmark"])
+
+    scoreboard = {}
     for inst in targets:
-        def f(i=inst):
-            rows, prov = providers.history(i, av, cfg.get("history_days", 780))
-            return f"{len(rows)} days via {prov}, last {rows[-1]['date']}"
-        results.append(check(f"{inst['ticker']:<8}", f))
+        line = []
+        for P in providers.ORDER:
+            if P.name == "alphavantage":
+                continue                            # only 25 calls a day; not spent on a health check
+            sym = providers.symbol_for(inst, P)
+            if not sym:
+                line.append(f"{P.name}: no symbol")
+                continue
+            try:
+                providers.Yahoo.last_meta = {}
+                rows = P.history(sym)
+                cur = (providers.Yahoo.last_meta or {}).get("currency") if P is providers.Yahoo else None
+                warn = ""
+                if cur and cur != inst.get("currency"):
+                    warn = f"  <-- settings say {inst.get('currency')}, exchange says {cur}"
+                line.append(f"{P.name}({sym}): {len(rows)} days to {rows[-1]['date']}"
+                            + (f" in {cur}" if cur else "") + warn)
+                scoreboard[P.name] = scoreboard.get(P.name, 0) + 1
+            except Exception as e:                  # noqa: BLE001
+                line.append(f"{P.name}({sym}): {str(e)[:70]}")
+        good = any(": " in x and "days to" in x for x in line)
+        print(("  WORKS   " if good else "  BROKEN  ") + f"{inst['ticker']:<8} — " + "  |  ".join(line))
+        results.append(good)
+
+    print("\n  Provider scoreboard: " + (", ".join(f"{k} answered {v} of {len(targets)}"
+          for k, v in scoreboard.items()) or "nobody answered"))
 
     print(f"\nUniverse — {len(uni)} preloaded instruments, spot-checking five")
     import random as _r
     for inst in _r.Random(0).sample(sorted(uni.values(), key=lambda x: x["ticker"]),
                                     min(5, len(uni))):
         def f(i=inst):
-            rows, prov = providers.history(i, None, 400)
-            return f"{len(rows)} days, last {rows[-1]['date']}"
+            rows, prov, meta = providers.history(i, None, 400,
+                                                 order=[p for p in providers.ORDER
+                                                        if p.name != "alphavantage"])
+            return f"{len(rows)} days via {prov}, {meta.get('currency') or '?'}, last {rows[-1]['date']}"
         results.append(check(f"{inst['ticker']:<8}", f))
 
     print("\nNews feeds")
@@ -99,12 +125,18 @@ def main():
         print("  SKIPPED Alpha Vantage — no ALPHAVANTAGE_KEY secret set yet")
     else:
         import fetch_consensus
+        _stop = []
         for inst in [i for i in cfg["instruments"] if i.get("alphavantage")]:
+            if _stop:
+                print("  SKIPPED " + f"{inst['ticker']:<8} — daily Alpha Vantage allowance used up")
+                continue
             def f(i=inst):
                 p = json.loads(fetch(fetch_consensus.URL.format(sym=i["alphavantage"], key=av))
                                .decode("utf-8", "replace"))
-                if "Note" in p or "Information" in p:
-                    raise ValueError("daily request limit reached — try again tomorrow")
+                m = p.get("Note") or p.get("Information") or p.get("Error Message")
+                if m:
+                    _stop.append(True)
+                    raise ValueError(f"{str(m)[:120]}")
                 if not p.get("Symbol"):
                     raise ValueError("no free-tier coverage for this listing")
                 c = fetch_consensus.parse_overview(p)
