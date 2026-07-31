@@ -49,7 +49,7 @@
     {
       "ticker": "CSPX",
       "name": "iShares Core S&P 500 UCITS ETF USD Acc",
-      "currency": "USD",
+      "currency": "EUR",
       "stooq": "cspx.nl",
       "alphavantage": null,
       "sec_cik": null,
@@ -59,21 +59,11 @@
     {
       "ticker": "VWCE",
       "name": "Vanguard FTSE All-World UCITS ETF Acc",
-      "currency": "USD",
+      "currency": "EUR",
       "stooq": "vwce.nl",
       "alphavantage": null,
       "sec_cik": null,
       "ai_revenue_share": 0.22,
-      "include_in_optimiser": true
-    },
-    {
-      "ticker": "DEMU",
-      "name": "iShares Core MSCI EMU UCITS ETF Acc",
-      "currency": "EUR",
-      "stooq": "demu.nl",
-      "alphavantage": null,
-      "sec_cik": null,
-      "ai_revenue_share": 0.1,
       "include_in_optimiser": true
     },
     {
@@ -84,6 +74,36 @@
       "alphavantage": "ASML",
       "sec_cik": "0000937966",
       "ai_revenue_share": 0.55,
+      "include_in_optimiser": true
+    },
+    {
+      "ticker": "CEMU",
+      "name": "iShares Core MSCI EMU UCITS ETF Acc — candidate ticker",
+      "currency": "EUR",
+      "stooq": "cemu.nl",
+      "alphavantage": null,
+      "sec_cik": null,
+      "ai_revenue_share": 0.1,
+      "include_in_optimiser": true
+    },
+    {
+      "ticker": "DEMU",
+      "name": "iShares Core MSCI EMU UCITS ETF Acc — candidate ticker",
+      "currency": "EUR",
+      "stooq": "demu.nl",
+      "alphavantage": null,
+      "sec_cik": null,
+      "ai_revenue_share": 0.1,
+      "include_in_optimiser": true
+    },
+    {
+      "ticker": "IEMU",
+      "name": "iShares Core MSCI EMU UCITS ETF Acc — candidate ticker",
+      "currency": "EUR",
+      "stooq": "iemu.nl",
+      "alphavantage": null,
+      "sec_cik": null,
+      "ai_revenue_share": 0.1,
       "include_in_optimiser": true
     }
   ],
@@ -239,7 +259,7 @@
     "COST": "cost.us|USD|Costco",
     "CRBN": "crbn.nl|EUR|Corbion",
     "CRM": "crm.us|USD|Salesforce",
-    "CSPX": "cspx.nl|USD|iShares Core S&P 500 UCITS ETF USD Acc",
+    "CSPX": "cspx.nl|EUR|iShares Core S&P 500 UCITS ETF Acc",
     "CVX": "cvx.us|USD|Chevron",
     "DBK": "dbk.de|EUR|Deutsche Bank",
     "DEMU": "demu.nl|EUR|iShares Core MSCI EMU UCITS ETF Acc",
@@ -328,7 +348,6 @@
     "SQ": "xyz.us|USD|Block",
     "SU": "su.fr|EUR|Schneider Electric",
     "SXR8": "sxr8.de|EUR|iShares Core S&P 500 (XETRA)",
-    "TKWY": "tkwy.nl|EUR|Just Eat Takeaway",
     "TMO": "tmo.us|USD|Thermo Fisher",
     "TSLA": "tsla.us|USD|Tesla",
     "TSM": "tsm.us|USD|TSMC ADR",
@@ -344,7 +363,7 @@
     "VOW3": "vow3.de|EUR|Volkswagen",
     "VPK": "vpk.nl|EUR|Vopak",
     "VUSA": "vusa.nl|EUR|Vanguard S&P 500",
-    "VWCE": "vwce.nl|USD|Vanguard FTSE All-World UCITS ETF Acc",
+    "VWCE": "vwce.nl|EUR|Vanguard FTSE All-World UCITS ETF Acc",
     "VWRL": "vwrl.nl|EUR|Vanguard FTSE All-World",
     "WKL": "wkl.nl|EUR|Wolters Kluwer",
     "WMT": "wmt.us|USD|Walmart",
@@ -354,10 +373,7 @@
   "_watchlist": [
     "Extra tickers to keep charts for even though you do not own them."
   ],
-  "watchlist": [
-    "CEMU",
-    "IEMU"
-  ],
+  "watchlist": [],
   "_auto_resolve": [
     "Exchange suffixes tried, in order, when a ticker is not already known.",
     "Amsterdam first because that is where most of your buying happens."
