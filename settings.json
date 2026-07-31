@@ -156,14 +156,14 @@
     "estimate_cut_warn": -1.5,
     "target_spread_warn": 0.5,
     "email_enabled": true,
-    "email_to": "PUT_YOUR_EMAIL_HERE"
+    "email_to": "floran.oldeklieverink@gmail.com"
   },
   "_history": "How much daily price history to keep. 780 is about three years of trading days.",
   "history_days": 780,
   "_filings": "SEC EDGAR requires a contact address in the request header. This is a rule, not an option.",
   "filings": {
     "enabled": true,
-    "user_agent_email": "PUT_YOUR_EMAIL_HERE",
+    "user_agent_email": "floran.oldeklieverink@gmail.com",
     "forms": [
       "4",
       "8-K",
