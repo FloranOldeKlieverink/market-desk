@@ -102,7 +102,7 @@
   .dismiss{background:none;border:none;color:var(--dimmer);cursor:pointer;font-family:var(--mono);font-size:16px;line-height:1;padding:3px 6px;border-radius:2px}
   .dismiss:hover{color:var(--text);background:var(--panel2)}
 
-  .txnrow{display:grid;grid-template-columns:1.1fr .8fr 1fr .9fr 1.3fr auto;gap:12px;align-items:end}
+  .txnrow{display:grid;grid-template-columns:1fr .75fr .95fr .8fr 1.2fr .8fr auto;gap:12px;align-items:end}
   label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
   input[type=text],input[type=number],input[type=date],select{font-family:var(--mono);font-size:15px;padding:10px 12px;border:1px solid var(--rule);border-radius:3px;background:var(--void);color:var(--text);width:100%;color-scheme:dark}
   input::placeholder{color:var(--dimmer)}
@@ -292,6 +292,7 @@
               <select id="f-ccy" aria-label="Currency"></select>
             </div>
           </div>
+          <div><label for="f-fee">Fee</label><input type="number" id="f-fee" step="any" min="0" placeholder="2.50"></div>
           <button class="btn" id="f-add">Record</button>
         </div>
         <p class="fxhint" id="fxhint"></p>
@@ -678,17 +679,25 @@ const signed=n=>(n>=0?"+":"−")+eur(Math.abs(n),0);
 
 /* ---- the ledger: derive everything from the transaction log ---- */
 function ledger(){
-  const by=new Map();let realisedAll=0;
+  const by=new Map();let realisedAll=0,feesAll=0;
   const sorted=[...txns].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id-b.id);
   for(const x of sorted){
     let p=by.get(x.t);
-    if(!p){p={t:x.t,qty:0,costE:0,costN:0,realised:0,first:x.date,last:x.date,n:0};by.set(x.t,p)}
+    if(!p){p={t:x.t,qty:0,costE:0,costN:0,realised:0,fees:0,first:x.date,last:x.date,n:0};by.set(x.t,p)}
     p.last=x.date;p.n++;
-    const unitE=x.price*x.fx;
-    if(x.side==="buy"){p.qty+=x.qty;p.costE+=unitE*x.qty;p.costN+=x.price*x.qty}
+    /* A buy costs what you paid plus the commission; a sell returns what you got
+       minus it. That is how your broker computes it, so it is how we compute it. */
+    const fee=Math.max(0,+x.fee||0);
+    p.fees+=fee*x.fx; feesAll+=fee*x.fx;
+    if(x.side==="buy"){
+      p.qty+=x.qty;
+      p.costE+=(x.price*x.qty+fee)*x.fx;
+      p.costN+=x.price*x.qty+fee;
+    }
     else if(p.qty>1e-12){
       const q=Math.min(x.qty,p.qty),avgE=p.costE/p.qty,avgN=p.costN/p.qty;
-      p.realised+=(unitE-avgE)*q;realisedAll+=(unitE-avgE)*q;
+      const netE=(x.price*q-fee)*x.fx;
+      p.realised+=netE-avgE*q;realisedAll+=netE-avgE*q;
       p.costE-=avgE*q;p.costN-=avgN*q;p.qty-=q;
       if(p.qty<1e-12){p.qty=0;p.costE=0;p.costN=0}
     }
@@ -702,7 +711,7 @@ function ledger(){
       ret:book?(val-book)/book:0,avgE,avgN,avgFx,day:dayChg(p.t),
       opt:optIn[p.t]!==undefined?optIn[p.t]:(m.idio<=0.025)};
   });
-  return{rows,realisedAll};
+  return{rows,realisedAll,feesAll};
 }
 const rowsOf=()=>ledger().rows;
 
@@ -720,7 +729,11 @@ function seriesOf(list){
 }
 function moneyWeighted(rows){
   const flows=[...txns].sort((a,b)=>a.date<b.date?-1:1)
-    .map(x=>({d:new Date(x.date+"T12:00:00"),a:(x.side==="buy"?-1:1)*x.qty*x.price*x.fx}));
+    .map(x=>{
+      const fee=Math.max(0,+x.fee||0);
+      const cash=x.side==="buy"?-(x.qty*x.price+fee):(x.qty*x.price-fee);
+      return {d:new Date(x.date+"T12:00:00"),a:cash*x.fx};
+    });
   if(!flows.length)return null;
   flows.push({d:new Date(),a:rows.reduce((a,r)=>a+r.val,0)});
   return xirr(flows);
@@ -913,11 +926,12 @@ function renderLedger(){
   if(!txns.length){el.innerHTML=`<div class="empty"><p>No trades recorded</p><span class="muted">Record your first trade above.</span></div>`;return}
   const sorted=[...txns].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:b.id-a.id);
   el.innerHTML=`<table class="ledger">
-    <thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>FX at trade</th><th>Value</th><th></th></tr></thead>
+    <thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>Fee</th><th>FX at trade</th><th>Value</th><th></th></tr></thead>
     <tbody>${sorted.map(x=>{
       const ok=x.t&&x.date&&x.qty>0&&x.price>0;
-      const v=ok?x.qty*x.price*x.fx:0;
-      if(!ok)return `<tr><td colspan="7" style="color:var(--flag)">
+      const fee=Math.max(0,+x.fee||0);
+      const v=ok?(x.qty*x.price+(x.side==="buy"?fee:-fee))*x.fx:0;
+      if(!ok)return `<tr><td colspan="8" style="color:var(--flag)">
         Incomplete entry (${[!x.t&&"no ticker",!x.date&&"no date",!(x.qty>0)&&"no quantity",!(x.price>0)&&"no price"].filter(Boolean).join(", ")})
         — delete it and record it again</td>
         <td><button class="del" data-x="${x.id}" aria-label="Delete trade">×</button></td></tr>`;
@@ -927,6 +941,7 @@ function renderLedger(){
         <td><span class="side ${x.side==="sell"?"sell":""}">${x.side}</span></td>
         <td>${x.qty.toLocaleString("nl-NL",{maximumFractionDigits:6})}</td>
         <td>${native(x.price,x.ccy)}</td>
+        <td>${fee>0?native(fee,x.ccy):'<span class="ccy">—</span>'}</td>
         <td>${x.ccy==="EUR"?'<span class="ccy">—</span>':x.fx.toFixed(4)}</td>
         <td>${x.side==="sell"?"+":"−"}${eur(v,0)}</td>
         <td><button class="del" data-x="${x.id}" aria-label="Delete trade">×</button></td></tr>`}).join("")}</tbody></table>`;
@@ -959,10 +974,13 @@ function renderPositions(){
       <td></td></tr>`).join("")}</tbody>
     <tfoot><tr><td>Total</td><td></td><td></td><td></td><td></td><td></td><td>${eur(tot,0)}</td>
       <td class="${cls(tot-totb)}">${arw(tot-totb)}${signed(tot-totb)}</td><td></td><td></td></tr></tfoot></table>`;
+  const fees=ledger().feesAll;
   const fxe=fxEffect(rows);
   wrap.insertAdjacentHTML("beforeend",
     `<p class="fxline">Of that P&amp;L, <b style="color:${fxe>=0?"var(--gain)":"var(--loss)"}">${signed(fxe)}</b> is currency movement rather than company performance — measured against the rate on each individual trade date, not a single blended one. Today's EUR/USD ${FX.USD.toFixed(4)}.<br>
-    Average cost is derived from the log on an average-cost basis. Delete a trade and every number above recomputes.</p>`);
+    Average cost is derived from the log on an average-cost basis, commissions included, which is how your broker does it too.
+    ${fees>0?`You have paid <b>${eur(fees)}</b> in trading costs, ${tot?((fees/tot)*100).toFixed(2):"0.00"}% of what the portfolio is worth today.`
+            :`No trading costs recorded yet — add them in the Fee box and your figures will match your broker's exactly.`}</p>`);
   wrap.querySelectorAll(".optbox").forEach(b=>b.onchange=()=>{optIn[b.dataset.o]=b.checked;saveOpt();renderAll()});
 
   document.getElementById("allocbar").innerHTML=rows.map((r,i)=>
@@ -1209,11 +1227,13 @@ function updateFxHint(){
       +(outOfRange?`<br><span class="warnline">That date is before the history we hold, so the earliest available rate would be used.</span>`:"");
     return;
   }
-  const per=price>0?price*rate:null,tot=per&&qty>0?per*qty:null;
+  const feeIn=Math.max(0,parseFloat($("f-fee").value)||0);
+  const per=price>0?price*rate:null;
+  const tot=per&&qty>0?(price*qty+feeIn)*rate:null;
   const drift=rate?(spot-rate)/rate:0;
   el.innerHTML=
     `ECB rate on <b>${prettyDate(clamped)}</b>: ${rate.toFixed(4)} · today ${spot.toFixed(4)} <span class="${cls(drift)}">${arw(drift)}${pct(drift,1)}</span>`
-    +(per?`<br>${native(price,ccy)} converts to <b>${eur(per)}</b>${tot?` · ${qty} × = <b>${eur(tot,0)}</b>`:""}`:"")
+    +(per?`<br>${native(price,ccy)} converts to <b>${eur(per)}</b>${tot?` · ${qty} × ${feeIn>0?`plus ${native(feeIn,ccy)} fee `:""}= <b>${eur(tot,0)}</b> all in`:""}`:"")
     +`<br><span style="color:var(--dimmer)">Backdate the trade and the historical rate is used, not today's.</span>`
     +(outOfRange?`<br><span class="warnline">That date is before the history we hold, so the earliest available rate is being used.</span>`:"");
 }
@@ -1290,7 +1310,7 @@ async function boot(){
     const t=$("f-tkr").value.trim().toUpperCase();
     if(INSTR[t]){$("f-ccy").value=INSTR[t].ccy;updateFxHint()}
   });
-  ["f-price","f-qty"].forEach(i=>$(i).addEventListener("input",updateFxHint));
+  ["f-price","f-qty","f-fee"].forEach(i=>$(i).addEventListener("input",updateFxHint));
   $("f-ccy").addEventListener("change",updateFxHint);
   $("f-date").addEventListener("change",updateFxHint);
   $("f-add").onclick=addTrade;
@@ -1302,6 +1322,8 @@ async function boot(){
 function addTrade(){
   const t=$("f-tkr").value.trim().toUpperCase();
   const qty=parseFloat($("f-qty").value),price=parseFloat($("f-price").value);
+  const feeRaw=$("f-fee").value.trim();
+  const fee=feeRaw===""?0:parseFloat(feeRaw);
   const ccy=$("f-ccy").value;
   let date=$("f-date").value||LAST;
   const missing=[];
@@ -1310,6 +1332,10 @@ function addTrade(){
   if(!(price>0))missing.push("the price you paid");
   if(!date)missing.push("the trade date");
   if(!FX[ccy])missing.push("a currency");
+  if(feeRaw!==""&&!(fee>=0)){
+    alert("The fee must be a number, or left blank.\n\nUse a full stop for decimals: 2.50");
+    return;
+  }
   if(missing.length){
     alert("Still needed: "+missing.join(", ")+".\n\nTip: if you typed a comma as the decimal point, the box will look filled but read as empty. Use a full stop.");
     return;
@@ -1321,9 +1347,9 @@ function addTrade(){
     const held=rowsOf().find(r=>r.t===t);
     if(!held||held.qty+1e-9<qty){alert(`You hold ${held?held.qty:0} of ${t}. Reduce the quantity or record the purchase first.`);return}
   }
-  txns.push({id:nextId++,t,side,date,qty,price,ccy,fx:fxOn(ccy,date)});
+  txns.push({id:nextId++,t,side,date,qty,price,fee,ccy,fx:fxOn(ccy,date)});
   saveTxns();
-  ["f-tkr","f-qty","f-price"].forEach(i=>$(i).value="");
+  ["f-tkr","f-qty","f-price","f-fee"].forEach(i=>$(i).value="");
   updateFxHint();
   if(CATALOG[t]&&!PRICES.series[t]){
     loadPrices([t]).then(()=>{buildAll();renderAll()});   /* first buy of a new name */
